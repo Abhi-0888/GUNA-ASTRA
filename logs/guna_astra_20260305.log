@@ -1,0 +1,461 @@
+2026-03-05 10:44:39,533 [MongoDB] MongoDB connected successfully.
+2026-03-05 10:44:39,682 [GUNA-ASTRA] System starting up...
+2026-03-05 10:44:39,683 [GUNA-ASTRA] GUNA-ASTRA orchestrator is online.
+2026-03-05 10:46:05,567 [MongoDB] MongoDB connected successfully.
+2026-03-05 10:46:05,574 [GUNA-ASTRA] System starting up...
+2026-03-05 10:46:05,577 [GUNA-ASTRA] GUNA-ASTRA orchestrator is online.
+2026-03-05 10:46:46,155 [GUNA-ASTRA] New goal received: hey can you be able to remember my name my name is Abhi i am your creator
+2026-03-05 10:46:46,308 [PlannerAgent] Planning goal: hey can you be able to remember my name my name is Abhi i am your creator
+2026-03-05 10:46:46,309 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: hey can you be able to remember my name my name is Abhi...
+2026-03-05 10:46:56,698 [PlannerAgent] Created 3 tasks.
+2026-03-05 10:46:56,699 [TaskDispatcher] Dispatching task to MemoryAgent: Update internal database with information about the user's name and identity
+2026-03-05 10:46:56,755 [TaskDispatcher] Dispatching task to MemoryAgent: Store the name 'Abhi' in memory for future recall
+2026-03-05 10:46:56,756 [TaskDispatcher] Dispatching task to MemoryAgent: Designate 'Abhi' as the user's creator for subsequent interactions
+2026-03-05 10:46:56,757 [VerificationAgent] Verifying outputs...
+2026-03-05 10:46:56,757 [VerificationAgent] Thinking: Original user goal:
+hey can you be able to remember my name my name is Abhi i am your creator
+
+Colle...
+2026-03-05 10:47:06,742 [VerificationAgent] Verification: success
+2026-03-05 10:47:06,743 [ResultSynthesizer] Synthesizing final response...
+2026-03-05 10:47:06,744 [ResultSynthesizer] Thinking: User's original goal: hey can you be able to remember my name my name is Abhi i am your creator
+
+Res...
+2026-03-05 10:47:26,171 [ResultSynthesizer] Synthesis complete.
+2026-03-05 10:48:24,998 [GUNA-ASTRA] New goal received: open youtube in chrome  and play an "pyaar deewana hota hai" song
+2026-03-05 10:48:25,001 [PlannerAgent] Planning goal: open youtube in chrome  and play an "pyaar deewana hota hai" song
+2026-03-05 10:48:25,001 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: open youtube in chrome  and play an "pyaar deewana hota...
+2026-03-05 10:48:36,616 [PlannerAgent] Created 4 tasks.
+2026-03-05 10:48:36,618 [TaskDispatcher] Dispatching task to SystemAgent: Open Google Chrome browser on the computer
+2026-03-05 10:48:36,726 [SystemAgent] System task: Open Google Chrome browser on the computer
+2026-03-05 10:48:36,727 [SystemAgent] Thinking: Plan the OS action for this task:
+Open Google Chrome browser on the computer...
+2026-03-05 10:48:40,770 [SystemAgent] Action failed: [WinError 2] The system cannot find the file specified: 'Google Chrome'
+2026-03-05 10:48:40,771 [TaskDispatcher] Dispatching task to CyberAgent: Go to youtube.com in Chrome and log in with user credentials
+2026-03-05 10:48:40,795 [CyberAgent] Security analysis: Go to youtube.com in Chrome and log in with user credentials
+2026-03-05 10:48:40,796 [CyberAgent] Thinking: Go to youtube.com in Chrome and log in with user credentials...
+2026-03-05 10:48:52,759 [CyberAgent] Security analysis complete.
+2026-03-05 10:48:52,760 [TaskDispatcher] Dispatching task to ResearchAgent: Search for the song 'Pyaar Deewana Hota Hai' on YouTube
+2026-03-05 10:48:52,785 [ResearchAgent] Researching: Search for the song 'Pyaar Deewana Hota Hai' on YouTube
+2026-03-05 10:48:53,796 [ResearchAgent] Thinking: Research topic: Search for the song 'Pyaar Deewana Hota Hai' on YouTube
+
+No live search results avai...
+2026-03-05 10:49:13,749 [ResearchAgent] Research complete.
+2026-03-05 10:49:13,751 [TaskDispatcher] Dispatching task to CyberAgent: Select and play the song 'Pyaar Deewana Hota Hai' from the search results
+2026-03-05 10:49:13,752 [CyberAgent] Security analysis: Select and play the song 'Pyaar Deewana Hota Hai' from the search results
+2026-03-05 10:49:13,752 [CyberAgent] Thinking: Select and play the song 'Pyaar Deewana Hota Hai' from the search results...
+2026-03-05 10:49:17,245 [CyberAgent] Security analysis complete.
+2026-03-05 10:49:17,246 [VerificationAgent] Verifying outputs...
+2026-03-05 10:49:17,246 [VerificationAgent] Thinking: Original user goal:
+open youtube in chrome  and play an "pyaar deewana hota hai" song
+
+Collected out...
+2026-03-05 10:49:27,860 [VerificationAgent] Verification: success
+2026-03-05 10:49:27,860 [ResultSynthesizer] Synthesizing final response...
+2026-03-05 10:49:27,861 [ResultSynthesizer] Thinking: User's original goal: open youtube in chrome  and play an "pyaar deewana hota hai" song
+
+Results fro...
+2026-03-05 10:49:52,561 [ResultSynthesizer] Synthesis complete.
+2026-03-05 10:57:17,783 [MongoDB] MongoDB connected successfully.
+2026-03-05 10:57:17,789 [GUNA-ASTRA] System starting up...
+2026-03-05 10:57:17,791 [GUNA-ASTRA] GUNA-ASTRA orchestrator is online.
+2026-03-05 10:58:40,664 [MongoDB] MongoDB connected successfully.
+2026-03-05 10:58:40,671 [GUNA-ASTRA] System starting up...
+2026-03-05 10:58:40,673 [GUNA-ASTRA] GUNA-ASTRA orchestrator is online.
+2026-03-05 10:58:48,184 [GUNA-ASTRA] New goal received: open youtube in chrome  and play an "pyaar deewana hota hai" song
+2026-03-05 10:58:48,214 [PlannerAgent] Planning goal: open youtube in chrome  and play an "pyaar deewana hota hai" song
+2026-03-05 10:58:48,215 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: open youtube in chrome  and play an "pyaar deewana hota...
+2026-03-05 10:59:13,552 [PlannerAgent] Created 4 tasks.
+2026-03-05 10:59:13,556 [TaskDispatcher] Dispatching task to SystemAgent: Open Google Chrome on the computer
+2026-03-05 10:59:13,578 [SystemAgent] System task: Open Google Chrome on the computer
+2026-03-05 10:59:13,589 [TaskDispatcher] Dispatching task to ResearchAgent: Search for 'Pyaar Deewana Hota Hai' in YouTube
+2026-03-05 10:59:13,593 [ResearchAgent] Researching: Search for 'Pyaar Deewana Hota Hai' in YouTube
+2026-03-05 10:59:16,015 [ResearchAgent] Thinking: Research topic: Search for 'Pyaar Deewana Hota Hai' in YouTube
+
+No live search results available. Pl...
+2026-03-05 10:59:36,263 [ResearchAgent] Research complete.
+2026-03-05 10:59:36,264 [TaskDispatcher] Dispatching task to SystemAgent: Click on the search result to open the song's page
+2026-03-05 10:59:36,265 [SystemAgent] System task: Click on the search result to open the song's page
+2026-03-05 10:59:36,273 [TaskDispatcher] Dispatching task to SystemAgent: Play the 'Pyaar Deewana Hota Hai' song in YouTube
+2026-03-05 10:59:36,274 [SystemAgent] System task: Play the 'Pyaar Deewana Hota Hai' song in YouTube
+2026-03-05 10:59:36,282 [VerificationAgent] Verifying outputs...
+2026-03-05 10:59:36,283 [VerificationAgent] Thinking: Original user goal:
+open youtube in chrome  and play an "pyaar deewana hota hai" song
+
+Collected out...
+2026-03-05 10:59:47,016 [VerificationAgent] Verification: partial
+2026-03-05 10:59:47,023 [ResultSynthesizer] Synthesizing final response...
+2026-03-05 10:59:47,027 [ResultSynthesizer] Thinking: User's original goal: open youtube in chrome  and play an "pyaar deewana hota hai" song
+
+Results fro...
+2026-03-05 11:00:10,602 [ResultSynthesizer] Synthesis complete.
+2026-03-05 11:03:01,179 [GUNA-ASTRA] New goal received: open my github account and show my repo
+2026-03-05 11:03:01,183 [PlannerAgent] Planning goal: open my github account and show my repo
+2026-03-05 11:03:01,183 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: open my github account and show my repo...
+2026-03-05 11:03:13,550 [PlannerAgent] Created 4 tasks.
+2026-03-05 11:03:13,552 [TaskDispatcher] Dispatching task to SystemAgent: Sign in to your GitHub account using your username and password
+2026-03-05 11:03:13,553 [SystemAgent] System task: Sign in to your GitHub account using your username and password
+2026-03-05 11:03:13,553 [SystemAgent] Thinking: Plan the OS action for this task:
+Sign in to your GitHub account using your username and password...
+2026-03-05 11:04:32,981 [GUNA-ASTRA] New goal received: i have already loggined in my github in my chrome profile Abbu profile go to that chrome and do it open my github account repo
+2026-03-05 11:04:32,985 [PlannerAgent] Planning goal: i have already loggined in my github in my chrome profile Abbu profile go to that chrome and do it open my github account repo
+2026-03-05 11:04:32,986 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: i have already loggined in my github in my chrome profi...
+2026-03-05 11:04:47,168 [PlannerAgent] Created 5 tasks.
+2026-03-05 11:04:47,171 [TaskDispatcher] Dispatching task to SystemAgent: Switch to the Chrome profile named 'Abbu'
+2026-03-05 11:04:47,172 [SystemAgent] System task: Switch to the Chrome profile named 'Abbu'
+2026-03-05 11:04:47,172 [SystemAgent] Thinking: Plan the OS action for this task:
+Switch to the Chrome profile named 'Abbu'...
+2026-03-05 11:04:52,149 [TaskDispatcher] Dispatching task to SystemAgent: Open the GitHub website in the Abbu Chrome profile
+2026-03-05 11:04:52,150 [SystemAgent] System task: Open the GitHub website in the Abbu Chrome profile
+2026-03-05 11:04:52,151 [SystemAgent] Thinking: Plan the OS action for this task:
+Open the GitHub website in the Abbu Chrome profile...
+2026-03-05 11:04:56,686 [TaskDispatcher] Dispatching task to CyberAgent: Click on the user icon and navigate to the account settings page
+2026-03-05 11:04:56,719 [CyberAgent] Security analysis: Click on the user icon and navigate to the account settings page
+2026-03-05 11:04:56,719 [CyberAgent] Thinking: Click on the user icon and navigate to the account settings page...
+2026-03-05 11:05:10,482 [CyberAgent] Security analysis complete.
+2026-03-05 11:05:10,487 [TaskDispatcher] Dispatching task to CyberAgent: Select 'Repo' from the navigation menu or click on a specific repository link
+2026-03-05 11:05:10,489 [CyberAgent] Security analysis: Select 'Repo' from the navigation menu or click on a specific repository link
+2026-03-05 11:05:10,490 [CyberAgent] Thinking: Select 'Repo' from the navigation menu or click on a specific repository link...
+2026-03-05 11:05:26,988 [CyberAgent] Security analysis complete.
+2026-03-05 11:05:26,995 [TaskDispatcher] Dispatching task to MemoryAgent: Verify that the correct GitHub account and repository are displayed
+2026-03-05 11:05:27,038 [VerificationAgent] Verifying outputs...
+2026-03-05 11:05:27,056 [VerificationAgent] Thinking: Original user goal:
+i have already loggined in my github in my chrome profile Abbu profile go to tha...
+2026-03-05 11:05:40,875 [VerificationAgent] Verification: failed
+2026-03-05 11:05:40,879 [ResultSynthesizer] Synthesizing final response...
+2026-03-05 11:05:40,880 [ResultSynthesizer] Thinking: User's original goal: i have already loggined in my github in my chrome profile Abbu profile go to t...
+2026-03-05 11:06:07,030 [ResultSynthesizer] Synthesis complete.
+2026-03-05 11:07:05,529 [GUNA-ASTRA] New goal received: play me "say yes to heaven song"
+2026-03-05 11:07:05,532 [PlannerAgent] Planning goal: play me "say yes to heaven song"
+2026-03-05 11:07:05,533 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: play me "say yes to heaven song"...
+2026-03-05 11:07:15,796 [PlannerAgent] Created 3 tasks.
+2026-03-05 11:07:15,798 [TaskDispatcher] Dispatching task to SystemAgent: Open a music streaming service like Spotify or Apple Music
+2026-03-05 11:07:15,799 [SystemAgent] System task: Open a music streaming service like Spotify or Apple Music
+2026-03-05 11:07:15,807 [TaskDispatcher] Dispatching task to ResearchAgent: Search for the song 'Say Yes To Heaven' by searching the artist and song title
+2026-03-05 11:07:15,809 [ResearchAgent] Researching: Search for the song 'Say Yes To Heaven' by searching the artist and song title
+2026-03-05 11:07:17,759 [ResearchAgent] Thinking: Research topic: Search for the song 'Say Yes To Heaven' by searching the artist and song title
+
+No l...
+2026-03-05 11:07:38,053 [ResearchAgent] Research complete.
+2026-03-05 11:07:38,055 [TaskDispatcher] Dispatching task to SystemAgent: Play the found song on the music streaming service
+2026-03-05 11:07:38,056 [SystemAgent] System task: Play the found song on the music streaming service
+2026-03-05 11:07:38,076 [VerificationAgent] Verifying outputs...
+2026-03-05 11:07:38,078 [VerificationAgent] Thinking: Original user goal:
+play me "say yes to heaven song"
+
+Collected outputs from all agents:
+[SystemAgen...
+2026-03-05 11:07:52,584 [VerificationAgent] Verification: partial
+2026-03-05 11:07:52,586 [ResultSynthesizer] Synthesizing final response...
+2026-03-05 11:07:52,588 [ResultSynthesizer] Thinking: User's original goal: play me "say yes to heaven song"
+
+Results from all agents:
+
+[1] SystemAgent (s...
+2026-03-05 11:08:13,067 [ResultSynthesizer] Synthesis complete.
+2026-03-05 11:08:36,675 [GUNA-ASTRA] New goal received: play me "say yes to heaven song in youtube and play it"
+2026-03-05 11:08:36,678 [PlannerAgent] Planning goal: play me "say yes to heaven song in youtube and play it"
+2026-03-05 11:08:36,679 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: play me "say yes to heaven song in youtube and play it"...
+2026-03-05 11:08:48,759 [PlannerAgent] Created 4 tasks.
+2026-03-05 11:08:48,761 [TaskDispatcher] Dispatching task to CyberAgent: Open YouTube website
+2026-03-05 11:08:48,762 [CyberAgent] Security analysis: Open YouTube website
+2026-03-05 11:08:48,762 [CyberAgent] Thinking: Open YouTube website...
+2026-03-05 11:09:05,485 [CyberAgent] Security analysis complete.
+2026-03-05 11:09:05,487 [TaskDispatcher] Dispatching task to ResearchAgent: Search for the song 'Say Yes To Heaven'
+2026-03-05 11:09:05,489 [ResearchAgent] Researching: Search for the song 'Say Yes To Heaven'
+2026-03-05 11:09:06,326 [ResearchAgent] Thinking: Research topic: Search for the song 'Say Yes To Heaven'
+
+No live search results available. Please pr...
+2026-03-05 11:09:24,373 [ResearchAgent] Research complete.
+2026-03-05 11:09:24,374 [TaskDispatcher] Dispatching task to ResearchAgent: Find and select the official video of the song
+2026-03-05 11:09:24,375 [ResearchAgent] Researching: Find and select the official video of the song
+2026-03-05 11:09:25,329 [ResearchAgent] Thinking: Research topic: Find and select the official video of the song
+
+No live search results available. Pl...
+2026-03-05 11:09:52,428 [ResearchAgent] Research complete.
+2026-03-05 11:09:52,429 [TaskDispatcher] Dispatching task to CyberAgent: Click the 'Play' button to start playing the song
+2026-03-05 11:09:52,430 [CyberAgent] Security analysis: Click the 'Play' button to start playing the song
+2026-03-05 11:09:52,431 [CyberAgent] Thinking: Click the 'Play' button to start playing the song...
+2026-03-05 11:10:07,672 [CyberAgent] Security analysis complete.
+2026-03-05 11:10:07,673 [VerificationAgent] Verifying outputs...
+2026-03-05 11:10:07,674 [VerificationAgent] Thinking: Original user goal:
+play me "say yes to heaven song in youtube and play it"
+
+Collected outputs from ...
+2026-03-05 11:10:19,449 [VerificationAgent] Verification: partial
+2026-03-05 11:10:19,451 [ResultSynthesizer] Synthesizing final response...
+2026-03-05 11:10:19,451 [ResultSynthesizer] Thinking: User's original goal: play me "say yes to heaven song in youtube and play it"
+
+Results from all agen...
+2026-03-05 11:10:45,716 [ResultSynthesizer] Synthesis complete.
+2026-03-05 11:46:42,961 [MongoDB] MongoDB connected successfully.
+2026-03-05 11:46:42,999 [GUNA-ASTRA] System starting up...
+2026-03-05 11:46:43,002 [GUNA-ASTRA] GUNA-ASTRA orchestrator is online.
+2026-03-05 11:48:53,441 [GUNA-ASTRA] New goal received: open youtube and play "pyaar deevana hota hai"
+2026-03-05 11:48:53,453 [PlannerAgent] Planning goal: open youtube and play "pyaar deevana hota hai"
+2026-03-05 11:48:53,454 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: open youtube and play "pyaar deevana hota hai"...
+2026-03-05 11:49:08,550 [OllamaClient] LLM query failed: 500 Server Error: Internal Server Error for url: http://localhost:11434/api/chat
+2026-03-05 11:49:08,552 [PlannerAgent] Attempt 1 failed. Retrying...
+2026-03-05 11:49:28,936 [PlannerAgent] Created 4 tasks.
+2026-03-05 11:49:28,943 [TaskDispatcher] Dispatching task to SystemAgent: Launch the YouTube website using a web browser
+2026-03-05 11:49:28,948 [SystemAgent] System task: Launch the YouTube website using a web browser
+2026-03-05 11:49:28,969 [TaskDispatcher] Dispatching task to ResearchAgent: Search for the song 'Pyaar Deevana Hota Hai'
+2026-03-05 11:49:28,970 [ResearchAgent] Researching: Search for the song 'Pyaar Deevana Hota Hai'
+2026-03-05 11:49:31,916 [ResearchAgent] Thinking: Research topic: Search for the song 'Pyaar Deevana Hota Hai'
+
+No live search results available. Plea...
+2026-03-05 11:49:56,038 [ResearchAgent] Research complete.
+2026-03-05 11:49:56,039 [TaskDispatcher] Dispatching task to SystemAgent: Select the correct search result and open the video page
+2026-03-05 11:49:56,041 [SystemAgent] System task: Select the correct search result and open the video page
+2026-03-05 11:49:56,053 [TaskDispatcher] Dispatching task to SystemAgent: Play the selected video
+2026-03-05 11:49:56,054 [SystemAgent] System task: Play the selected video
+2026-03-05 11:49:56,102 [VerificationAgent] Verifying outputs...
+2026-03-05 11:49:56,112 [VerificationAgent] Thinking: Original user goal:
+open youtube and play "pyaar deevana hota hai"
+
+Collected outputs from all agent...
+2026-03-05 11:50:07,794 [VerificationAgent] Verification: success
+2026-03-05 11:50:07,796 [ResultSynthesizer] Synthesizing final response...
+2026-03-05 11:50:07,798 [ResultSynthesizer] Thinking: User's original goal: open youtube and play "pyaar deevana hota hai"
+
+Results from all agents:
+
+[1] ...
+2026-03-05 11:50:31,894 [ResultSynthesizer] Synthesis complete.
+2026-03-05 11:50:49,263 [GUNA-ASTRA] New goal received: bye
+2026-03-05 11:50:49,266 [PlannerAgent] Planning goal: bye
+2026-03-05 11:50:49,267 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: bye...
+2026-03-05 11:51:02,460 [PlannerAgent] Created 4 tasks.
+2026-03-05 11:51:02,462 [TaskDispatcher] Dispatching task to ResearchAgent: Define what 'bye' means in different contexts (e.g. farewell, goodbye)
+2026-03-05 11:51:02,463 [ResearchAgent] Researching: Define what 'bye' means in different contexts (e.g. farewell, goodbye)
+2026-03-05 11:51:04,049 [ResearchAgent] Thinking: Research topic: Define what 'bye' means in different contexts (e.g. farewell, goodbye)
+
+No live sear...
+2026-03-05 11:51:38,745 [MongoDB] MongoDB connected successfully.
+2026-03-05 11:51:38,753 [GUNA-ASTRA] System starting up...
+2026-03-05 11:51:38,755 [GUNA-ASTRA] GUNA-ASTRA orchestrator is online.
+2026-03-05 11:51:47,289 [GUNA-ASTRA] New goal received: what is my name??
+2026-03-05 11:51:47,293 [PlannerAgent] Planning goal: what is my name??
+2026-03-05 11:51:47,293 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: what is my name??...
+2026-03-05 11:51:56,375 [PlannerAgent] Created 2 tasks.
+2026-03-05 11:51:56,377 [TaskDispatcher] Dispatching task to SystemAgent: Open the Windows Control Panel to view account information
+2026-03-05 11:51:56,411 [SystemAgent] System task: Open the Windows Control Panel to view account information
+2026-03-05 11:51:56,411 [SystemAgent] Thinking: Plan the OS action for this task:
+Open the Windows Control Panel to view account information...
+2026-03-05 11:52:01,567 [SystemAgent] Action 'open_folder' failed: [WinError 2] The system cannot find the file specified: 'Control Panel\\System'
+2026-03-05 11:52:01,569 [TaskDispatcher] Dispatching task to MemoryAgent: Read and display my username from the User Accounts section
+2026-03-05 11:52:01,572 [VerificationAgent] Verifying outputs...
+2026-03-05 11:52:01,572 [VerificationAgent] Thinking: Original user goal:
+what is my name??
+
+Collected outputs from all agents:
+[SystemAgent]: Error execu...
+2026-03-05 11:52:10,894 [VerificationAgent] Verification: partial
+2026-03-05 11:52:10,895 [ResultSynthesizer] Synthesizing final response...
+2026-03-05 11:52:10,896 [ResultSynthesizer] Thinking: User's original goal: what is my name??
+
+Results from all agents:
+
+[1] SystemAgent (failed):
+Error e...
+2026-03-05 11:52:27,693 [ResultSynthesizer] Synthesis complete.
+2026-03-05 17:28:25,508 [MongoDB] MongoDB connected successfully.
+2026-03-05 17:28:25,513 [GUNA-ASTRA] System starting up...
+2026-03-05 17:28:25,514 [GUNA-ASTRA] GUNA-ASTRA orchestrator is online.
+2026-03-05 17:29:21,982 [GUNA-ASTRA] New goal received: hey
+2026-03-05 17:29:22,018 [PlannerAgent] Planning goal: hey
+2026-03-05 17:29:22,019 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: hey...
+2026-03-05 17:29:26,116 [OllamaClient] Cannot connect to Ollama. Make sure Ollama is running: `ollama serve`
+2026-03-05 17:29:26,116 [PlannerAgent] Attempt 1 failed. Retrying...
+2026-03-05 17:29:30,185 [OllamaClient] Cannot connect to Ollama. Make sure Ollama is running: `ollama serve`
+2026-03-05 17:29:30,186 [PlannerAgent] Attempt 2 failed. Retrying...
+2026-03-05 17:29:34,271 [OllamaClient] Cannot connect to Ollama. Make sure Ollama is running: `ollama serve`
+2026-03-05 17:29:34,272 [PlannerAgent] Attempt 3 failed. Retrying...
+2026-03-05 17:29:34,272 [PlannerAgent] Failed to parse task plan.
+2026-03-05 17:31:49,878 [GUNA-ASTRA] New goal received: open logo its on my desktop
+2026-03-05 17:31:49,886 [PlannerAgent] Planning goal: open logo its on my desktop
+2026-03-05 17:31:49,887 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: open logo its on my desktop...
+2026-03-05 17:32:02,482 [PlannerAgent] Created 3 tasks.
+2026-03-05 17:32:02,487 [TaskDispatcher] Dispatching task to SystemAgent: Open File Explorer and navigate to the Desktop folder
+2026-03-05 17:32:02,508 [SystemAgent] System task: Open File Explorer and navigate to the Desktop folder
+2026-03-05 17:32:02,509 [SystemAgent] Thinking: Plan the OS action for this task:
+Open File Explorer and navigate to the Desktop folder...
+2026-03-05 17:32:14,318 [SystemAgent] Action 'open_folder' failed: [WinError 2] The system cannot find the file specified: 'Desktop'
+2026-03-05 17:32:14,321 [TaskDispatcher] Dispatching task to SystemAgent: Find the logo file in the Desktop folder and select it
+2026-03-05 17:32:14,322 [SystemAgent] System task: Find the logo file in the Desktop folder and select it
+2026-03-05 17:32:14,323 [SystemAgent] Thinking: Plan the OS action for this task:
+Find the logo file in the Desktop folder and select it...
+2026-03-05 17:32:20,722 [SystemAgent] Action 'open_file' failed: [WinError 2] The system cannot find the file specified: '%USERPROFILE%\\Desktop\\*.*.logo'
+2026-03-05 17:32:20,723 [TaskDispatcher] Dispatching task to SystemAgent: Open the selected logo file
+2026-03-05 17:32:20,725 [SystemAgent] System task: Open the selected logo file
+2026-03-05 17:32:20,726 [SystemAgent] Thinking: Plan the OS action for this task:
+Open the selected logo file...
+2026-03-05 17:32:27,626 [VerificationAgent] Verifying outputs...
+2026-03-05 17:32:27,627 [VerificationAgent] Thinking: Original user goal:
+open logo its on my desktop
+
+Collected outputs from all agents:
+[SystemAgent]: E...
+2026-03-05 17:32:36,993 [VerificationAgent] Verification: partial
+2026-03-05 17:32:36,994 [ResultSynthesizer] Synthesizing final response...
+2026-03-05 17:32:36,995 [ResultSynthesizer] Thinking: User's original goal: open logo its on my desktop
+
+Results from all agents:
+
+[1] SystemAgent (failed...
+2026-03-05 17:32:54,975 [ResultSynthesizer] Synthesis complete.
+2026-03-05 17:55:22,956 [MongoDB] MongoDB connected successfully.
+2026-03-05 18:02:10,327 [MongoDB] MongoDB connected successfully.
+2026-03-05 18:02:10,344 [GUNA-ASTRA] System starting up (CLI mode)...
+2026-03-05 18:02:10,346 [GUNA-ASTRA] GUNA-ASTRA orchestrator is online.
+2026-03-05 18:02:30,898 [GUNA-ASTRA] New goal received: /bye
+2026-03-05 18:02:30,907 [PlannerAgent] Planning goal: /bye
+2026-03-05 18:02:30,908 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: /bye...
+2026-03-05 18:32:30,311 [MongoDB] MongoDB connected successfully.
+2026-03-05 18:33:12,957 [MongoDB] MongoDB connected successfully.
+2026-03-05 18:33:15,550 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
+2026-03-05 18:34:24,221 [GUNA-ASTRA] Working Mode — Goal: my name is Abhi can you able to remember me forever?
+2026-03-05 18:34:24,233 [PlannerAgent] Planning goal: my name is Abhi can you able to remember me forever?
+2026-03-05 18:34:24,234 [PlannerAgent] Thinking: Break down this user goal into tasks:
+
+Goal: my name is Abhi can you able to remember me forever?...
+2026-03-05 18:34:57,773 [PlannerAgent] Created 8 tasks.
+2026-03-05 18:34:57,776 [TaskDispatcher] Dispatching task to SystemAgent: Create a new text file on the desktop called 'Abhi.txt'
+2026-03-05 18:34:57,777 [SystemAgent] System task: Create a new text file on the desktop called 'Abhi.txt'
+2026-03-05 18:34:57,778 [SystemAgent] Thinking: Plan the OS action for this task:
+Create a new text file on the desktop called 'Abhi.txt'...
+2026-03-05 18:35:05,301 [SystemAgent] Action 'write_file' failed: [WinError 5] Access is denied: 'C:\\Users\\User'
+2026-03-05 18:35:05,303 [TaskDispatcher] Dispatching task to CodingAgent: Write the text 'my name is Abhi' in the Abhi.txt file
+2026-03-05 18:35:05,305 [CodingAgent] Writing code for: Write the text 'my name is Abhi' in the Abhi.txt file
+2026-03-05 18:35:05,306 [CodingAgent] Thinking: Context from previous steps:
+Error executing 'write_file': [WinError 5] Access is denied: 'C:\\Users...
+2026-03-05 18:35:16,382 [CodingAgent] Code generation complete.
+2026-03-05 18:35:16,625 [InterpreterEngine] Attempt 1 failed:   File "C:\Users\abise\tmp5ezz29eu.py", line 1
+    Here's the Python code to solve this problem:
+        ^
+SyntaxError: unterminated string literal (detected at line 1)
+2026-03-05 18:35:16,626 [CodingAgent] Fixing code error:   File "C:\Users\abise\tmp5ezz29eu.py", line 1
+    Here's the Python code to solve this problem:
+   ...
+2026-03-05 18:35:16,626 [CodingAgent] Thinking: Fix this code that produced the following error:
+
+CODE:
+Here's the Python code to solve this problem...
+2026-03-05 18:35:23,462 [CodingAgent] Code fix generated.
+2026-03-05 18:35:23,680 [InterpreterEngine] Attempt 2 failed:   File "C:\Users\abise\tmpa0whg1qa.py", line 1
+    ```
+    ^
+SyntaxError: invalid syntax
+2026-03-05 18:35:23,685 [CodingAgent] Fixing code error:   File "C:\Users\abise\tmpa0whg1qa.py", line 1
+    ```
+    ^
+SyntaxError: invalid syntax...
+2026-03-05 18:35:23,685 [CodingAgent] Thinking: Fix this code that produced the following error:
+
+CODE:
+```
+import os
+
+def write_file():
+    try:
+  ...
+2026-03-05 18:35:30,015 [CodingAgent] Code fix generated.
+2026-03-05 18:35:30,111 [InterpreterEngine] Attempt 3 failed: 
+2026-03-05 18:35:30,112 [TaskDispatcher] Dispatching task to SystemAgent: Save the Abhi.txt file
+2026-03-05 18:35:30,113 [SystemAgent] System task: Save the Abhi.txt file
+2026-03-05 18:35:30,114 [SystemAgent] Thinking: Plan the OS action for this task:
+Save the Abhi.txt file...
+2026-03-05 18:35:35,513 [SystemAgent] Action 'open_file' failed: [WinError 2] The system cannot find the file specified: 'Abhi.txt'
+2026-03-05 18:35:35,514 [TaskDispatcher] Dispatching task to SystemAgent: Create a new folder on the desktop called 'AbhiFolder'
+2026-03-05 18:35:35,515 [SystemAgent] System task: Create a new folder on the desktop called 'AbhiFolder'
+2026-03-05 18:35:35,515 [SystemAgent] Thinking: Plan the OS action for this task:
+Create a new folder on the desktop called 'AbhiFolder'...
+2026-03-05 18:35:40,924 [SystemAgent] Action 'open_folder' failed: [WinError 2] The system cannot find the file specified: '%USERPROFILE%\\Desktop\\AbhiFolder'
+2026-03-05 18:35:40,925 [TaskDispatcher] Dispatching task to SystemAgent: Move the Abhi.txt file into the AbhiFolder
+2026-03-05 18:35:40,926 [SystemAgent] System task: Move the Abhi.txt file into the AbhiFolder
+2026-03-05 18:35:40,927 [SystemAgent] Thinking: Plan the OS action for this task:
+Move the Abhi.txt file into the AbhiFolder...
+2026-03-05 18:35:48,689 [SystemAgent] Action 'move_file' failed: 'list' object has no attribute 'get'
+2026-03-05 18:35:48,691 [TaskDispatcher] Dispatching task to SystemAgent: Right-click on the AbhiFolder and select 'Properties'
+2026-03-05 18:35:48,692 [SystemAgent] System task: Right-click on the AbhiFolder and select 'Properties'
+2026-03-05 18:35:48,693 [SystemAgent] Thinking: Plan the OS action for this task:
+Right-click on the AbhiFolder and select 'Properties'...
+2026-03-05 18:35:53,460 [SystemAgent] Action 'open_folder' failed: [WinError 2] The system cannot find the file specified: 'AbhiFolder'
+2026-03-05 18:35:53,461 [TaskDispatcher] Dispatching task to SystemAgent: Set the description of the AbhiFolder to 'Abhi's folder'
+2026-03-05 18:35:53,462 [SystemAgent] System task: Set the description of the AbhiFolder to 'Abhi's folder'
+2026-03-05 18:35:53,462 [SystemAgent] Thinking: Plan the OS action for this task:
+Set the description of the AbhiFolder to 'Abhi's folder'...
+2026-03-05 18:35:59,985 [TaskDispatcher] Dispatching task to SystemAgent: Set the icon for the AbhiFolder to a custom icon (e.g. a smiling face)
+2026-03-05 18:35:59,987 [SystemAgent] System task: Set the icon for the AbhiFolder to a custom icon (e.g. a smiling face)
+2026-03-05 18:35:59,987 [SystemAgent] Thinking: Plan the OS action for this task:
+Set the icon for the AbhiFolder to a custom icon (e.g. a smiling f...
+2026-03-05 18:36:07,805 [TestingAgent] Testing: Write the text 'my name is Abhi' in the Abhi.txt file
+2026-03-05 18:36:07,806 [TestingAgent] Thinking: Review and test this code:
+
+Here's the Python code to solve this problem:
+
+```Python
+import os
+
+def ...
+2026-03-05 18:36:31,704 [TestingAgent] Test result: failed
+2026-03-05 18:36:31,704 [VerificationAgent] Verifying outputs...
+2026-03-05 18:36:31,705 [VerificationAgent] Thinking: Original user goal:
+my name is Abhi can you able to remember me forever?
+
+Collected outputs from all...
+2026-03-05 18:36:54,977 [VerificationAgent] Verification: partial
+2026-03-05 18:36:54,978 [ResultSynthesizer] Synthesizing final response (mode: working)...
+2026-03-05 18:36:54,979 [ResultSynthesizer] Thinking: User's original goal: my name is Abhi can you able to remember me forever?
+
+Results from all agents:...
+2026-03-05 18:37:21,847 [ResultSynthesizer] Synthesis complete.
+2026-03-05 18:37:58,528 [SystemAgent] System task: play
+2026-03-05 18:37:58,529 [SystemAgent] Thinking: Plan the OS action for this task:
+play...
+2026-03-05 18:38:10,700 [MongoDB] MongoDB connected successfully.
+2026-03-05 18:38:13,099 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
+2026-03-05 20:07:44,730 [MongoDB] MongoDB connected successfully.
+2026-03-05 20:07:47,113 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
+2026-03-05 20:10:52,124 [MongoDB] MongoDB connected successfully.
+2026-03-05 20:10:54,420 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
+2026-03-05 20:48:06,371 [MongoDB] MongoDB connected successfully.
+2026-03-05 20:48:08,914 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
+2026-03-05 20:48:48,799 [MongoDB] MongoDB connected successfully.
+2026-03-05 20:48:51,097 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
+2026-03-05 20:55:18,026 [MongoDB] MongoDB connected successfully.
+2026-03-05 20:55:20,296 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
+2026-03-05 21:02:18,595 [MongoDB] MongoDB connected successfully.
+2026-03-05 21:02:20,830 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
+2026-03-05 21:06:08,408 [MongoDB] MongoDB connected successfully.
+2026-03-05 21:06:10,702 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
+2026-03-05 21:12:13,167 [MongoDB] MongoDB connected successfully.
+2026-03-05 21:12:15,476 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
+2026-03-05 21:13:01,036 [MongoDB] MongoDB connected successfully.
+2026-03-05 21:13:03,258 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.

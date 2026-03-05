@@ -1,0 +1,807 @@
+"""
+GUNA-ASTRA Orchestrator
+The central brain — coordinates all agents through a strict pipeline.
+
+Two Modes:
+  NORMAL MODE  — default, fast direct execution via IntentClassifier + ComputerController
+  WORKING MODE — full multi-agent pipeline for complex goals
+
+Smart routing in Normal Mode bypasses LLM for instant system commands.
+Enhanced with InterpreterEngine for autonomous code execution.
+"""
+
+import json
+import os
+import re
+import time
+from datetime import datetime
+from utils.logger import get_logger
+from utils.llm_client import check_ollama_health
+from utils.memory_db import save_task, save_conversation, get_conversation_history
+from config.settings import (
+    MAX_TASK_ITERATIONS, TASK_TIMEOUT_SECONDS,
+    DIRECT_EXECUTION_ENABLED, CONVERSATION_HISTORY_SIZE, SPEAK_RESPONSES,
+    MODE_NORMAL, MODE_WORKING, DEFAULT_MODE, AUTO_SWITCH_TO_WORKING
+)
+
+from agents.planner_agent import PlannerAgent
+from agents.task_dispatcher import TaskDispatcher
+from agents.testing_agent import TestingAgent
+from agents.verification_agent import VerificationAgent
+from agents.result_synthesizer import ResultSynthesizer
+from agents.system_agent import SystemAgent
+
+from core.intent_classifier import IntentClassifier, COMPLEX_TASK, UNKNOWN, CHANGE_MODE
+from core.intent_classifier import (
+    SHOW_HELP, SHOW_HISTORY, SHOW_STATUS, OPEN_APP, OPEN_URL, PLAY_MUSIC,
+    PLAY_VIDEO, CREATE_FILE, CREATE_FOLDER, DELETE_FILE, DELETE_FOLDER,
+    MOVE_FILE, COPY_FILE, RENAME_FILE, LIST_DIR, SHOW_TIME, SET_VOLUME,
+    VOLUME_UP, VOLUME_DOWN, MUTE_VOLUME, TAKE_SCREENSHOT, SHOW_SYSTEM_INFO,
+    SHOW_BATTERY, LIST_PROCESSES, KILL_PROCESS, SEARCH_FILES, SHOW_NETWORK,
+    CHECK_WEBSITE, GET_WEATHER, EMPTY_TRASH, LOCK_SCREEN, SHUTDOWN,
+    RESTART, SLEEP, GET_CLIPBOARD, SET_CLIPBOARD, TYPE_TEXT, PRESS_KEY,
+    RUN_COMMAND, ZIP_FILES, UNZIP_FILE, DOWNLOAD_FILE, OPEN_FILE_MANAGER,
+    FIND_REPLACE
+)
+from core.computer_controller import ComputerController
+from core.interpreter_engine import InterpreterEngine
+
+logger = get_logger("GUNA-ASTRA")
+
+
+class GUNAASTRAOrchestrator:
+    def __init__(self):
+        self.planner = PlannerAgent()
+        self.dispatcher = TaskDispatcher()
+        self.tester = TestingAgent()
+        self.verifier = VerificationAgent()
+        self.synthesizer = ResultSynthesizer()
+        self.system_agent = SystemAgent()
+        self.session_id = f"session_{int(time.time())}"
+
+        # ── v2.0 additions ──
+        self.current_mode = DEFAULT_MODE
+        self.current_directory = os.path.expanduser("~")
+        self.computer = ComputerController()
+        self.engine = InterpreterEngine()
+        self.classifier = IntentClassifier()
+
+        self._pending_confirmation = None
+        self._conversation = []
+
+        # Normal Mode command history for follow-ups
+        self.normal_mode_history = []
+        self.MAX_NORMAL_HISTORY = 20
+
+    # ─── Path Shortening ──────────────────────────────────────────────────
+
+    def _shorten_path(self, path: str) -> str:
+        """Shorten path for display: ~/Desktop instead of full path."""
+        home = os.path.expanduser("~")
+        if path.startswith(home):
+            return "~" + path[len(home):]
+        return path
+
+    # ─── Main Interactive Loop ────────────────────────────────────────────
+
+    def run(self):
+        logger.info("GUNA-ASTRA v2.0 orchestrator is online.")
+
+        if not check_ollama_health():
+            print("\033[91m[WARNING] Ollama is not running. Start it with: ollama serve\033[0m")
+            print("\033[93mYou can still use Normal Mode — direct commands work without LLM!\033[0m\n")
+
+        self._print_mode()
+
+        while True:
+            try:
+                mode_icon = "⚡" if self.current_mode == MODE_NORMAL else "🤖"
+                short_dir = self._shorten_path(self.current_directory)
+                prompt = f"\n\033[96m{mode_icon} [{self.current_mode.upper()}] {short_dir} >\033[0m "
+                user_input = input(prompt).strip()
+            except (EOFError, KeyboardInterrupt):
+                print("\n\n\033[96m[GUNA-ASTRA] Goodbye. Stay productive! 👋\033[0m")
+                break
+
+            if not user_input:
+                continue
+
+            if user_input.lower() in ("exit", "quit", "bye", "goodbye"):
+                print("\n\033[96m[GUNA-ASTRA] Goodbye. Stay productive! 👋\033[0m")
+                break
+
+            if user_input.lower() == "clear":
+                os.system("cls" if os.name == "nt" else "clear")
+                from utils.banner import print_banner
+                print_banner()
+                self._print_mode()
+                continue
+
+            # Handle pending confirmation
+            if self._pending_confirmation:
+                self._resolve_confirmation(user_input)
+                continue
+
+            # Resolve follow-up references ("that file", "again")
+            user_input = self._resolve_references(user_input)
+
+            # Save to conversation context
+            self._remember("user", user_input)
+
+            # Classify the intent FIRST (fast, no LLM)
+            classification = self.classifier.classify(user_input)
+            intent = classification["intent"]
+            params = classification["params"]
+            confidence = classification["confidence"]
+
+            # Handle mode change
+            if intent == CHANGE_MODE:
+                self._change_mode(params.get("mode", ""))
+                continue
+
+            # Handle help/history/status
+            if intent == SHOW_HELP:
+                self._show_help()
+                continue
+            if intent == SHOW_HISTORY:
+                self._show_history()
+                continue
+            if intent == SHOW_STATUS:
+                self._show_status()
+                continue
+            if intent == "CLEAR_SCREEN":
+                os.system("cls" if os.name == "nt" else "clear")
+                from utils.banner import print_banner
+                print_banner()
+                self._print_mode()
+                continue
+
+            # ── ROUTING DECISION ──
+            if self.current_mode == MODE_NORMAL:
+                if intent == COMPLEX_TASK:
+                    if AUTO_SWITCH_TO_WORKING:
+                        print(f"\n\033[93m[GUNA-ASTRA] 💡 This looks like a complex task.\033[0m")
+                        print(f"\033[93m[GUNA-ASTRA] Switching to WORKING MODE for this request...\033[0m")
+                        self._process_goal_working_mode(user_input)
+                    else:
+                        print(f"\n\033[93m[GUNA-ASTRA] 💡 This looks complex. "
+                              f"Say 'mode working' to switch.\033[0m")
+                        self._execute_simple_pipeline(user_input)
+                elif intent == UNKNOWN:
+                    if len(user_input.split()) <= 6:
+                        # Short unknown — try direct system execution
+                        self._execute_direct_fallback(user_input)
+                    else:
+                        print(f"\n\033[93m[GUNA-ASTRA] Switching to WORKING MODE...\033[0m")
+                        self._process_goal_working_mode(user_input)
+                else:
+                    # Execute in Normal Mode via ComputerController
+                    result = self._execute_normal_mode(intent, params, user_input)
+                    self._display_normal_result(result)
+                    self._save_normal_history(user_input, intent, params, result)
+
+            elif self.current_mode == MODE_WORKING:
+                self._process_goal_working_mode(user_input)
+
+    # ─── API Entry Point ──────────────────────────────────────────────────
+
+    def process_command(self, text: str) -> dict:
+        """Process a command and return result dict. Used by FastAPI."""
+        self._remember("user", text)
+        classification = self.classifier.classify(text)
+        intent = classification["intent"]
+        params = classification["params"]
+
+        if self.current_mode == MODE_NORMAL:
+            if intent in (COMPLEX_TASK, UNKNOWN) and len(text.split()) > 6:
+                return self._process_goal_full_pipeline_api(text)
+            elif intent == UNKNOWN:
+                return self._execute_direct_api(text)
+            else:
+                result = self._execute_normal_mode(intent, params, text)
+                return {"status": "success" if result.get("success") else "failed",
+                        "output": result.get("output", ""), "agent": "ComputerController"}
+        else:
+            return self._process_goal_full_pipeline_api(text)
+
+    # ─── Normal Mode Execution ────────────────────────────────────────────
+
+    def _execute_normal_mode(self, intent: str, params: dict, raw_input: str) -> dict:
+        """Route to the correct ComputerController method based on intent."""
+        cc = self.computer
+
+        if intent == OPEN_APP:
+            return cc.open_application(params.get("app_name", raw_input.replace("open ", "").replace("launch ", "")))
+
+        elif intent == OPEN_URL:
+            url = params.get("url", "")
+            if not url.startswith("http"):
+                url = "https://" + url
+            return cc.open_url(url)
+
+        elif intent in (PLAY_MUSIC, PLAY_VIDEO):
+            return cc.play_youtube(params.get("query", raw_input))
+
+        elif intent == CREATE_FILE:
+            filename = params.get("filename", "")
+            content = params.get("content", "")
+            path = os.path.join(self.current_directory, filename) if filename else ""
+            return cc.create_file(path, content)
+
+        elif intent == CREATE_FOLDER:
+            name = params.get("folder_name", "")
+            path = os.path.join(self.current_directory, name) if name else ""
+            return cc.create_folder(path)
+
+        elif intent == DELETE_FILE:
+            path = params.get("path", "")
+            if path and not os.path.isabs(path):
+                path = os.path.join(self.current_directory, path)
+            return cc.delete_file(path)
+
+        elif intent == DELETE_FOLDER:
+            path = params.get("path", "")
+            if path and not os.path.isabs(path):
+                path = os.path.join(self.current_directory, path)
+            return cc.delete_folder(path, recursive=True)
+
+        elif intent == MOVE_FILE:
+            return cc.move_file(params.get("src", ""), params.get("dst", ""))
+
+        elif intent == COPY_FILE:
+            return cc.copy_file(params.get("src", ""), params.get("dst", ""))
+
+        elif intent == RENAME_FILE:
+            return cc.rename_file(params.get("path", ""), params.get("new_name", ""))
+
+        elif intent == LIST_DIR:
+            path = params.get("path", self.current_directory)
+            if path and not os.path.isabs(path):
+                path = os.path.join(self.current_directory, path)
+            return cc.list_directory(path or self.current_directory)
+
+        elif intent == SHOW_TIME:
+            return cc.show_datetime()
+
+        elif intent == SET_VOLUME:
+            return cc.set_volume(int(params.get("level", 50)))
+
+        elif intent == VOLUME_UP:
+            return cc.volume_up(int(params.get("amount", 10)))
+
+        elif intent == VOLUME_DOWN:
+            return cc.volume_down(int(params.get("amount", 10)))
+
+        elif intent == MUTE_VOLUME:
+            return cc.mute_volume()
+
+        elif intent == TAKE_SCREENSHOT:
+            return cc.take_screenshot(params.get("path"))
+
+        elif intent == SHOW_SYSTEM_INFO:
+            return cc.get_system_info()
+
+        elif intent == SHOW_BATTERY:
+            return cc.get_battery_status()
+
+        elif intent == LIST_PROCESSES:
+            return cc.list_processes()
+
+        elif intent == KILL_PROCESS:
+            return cc.kill_process(params.get("process_name", ""))
+
+        elif intent == SEARCH_FILES:
+            return cc.search_files(params.get("query", ""))
+
+        elif intent == SHOW_NETWORK:
+            return cc.get_network_info()
+
+        elif intent == CHECK_WEBSITE:
+            return cc.check_website(params.get("url", ""))
+
+        elif intent == GET_WEATHER:
+            return cc.get_weather(params.get("city"))
+
+        elif intent == EMPTY_TRASH:
+            return cc.empty_trash()
+
+        elif intent == LOCK_SCREEN:
+            return cc.lock_screen()
+
+        elif intent == SHUTDOWN:
+            return cc.shutdown_computer()
+
+        elif intent == RESTART:
+            return cc.restart_computer()
+
+        elif intent == SLEEP:
+            return cc.sleep_computer()
+
+        elif intent == GET_CLIPBOARD:
+            return cc.get_clipboard()
+
+        elif intent == SET_CLIPBOARD:
+            return cc.set_clipboard(params.get("text", ""))
+
+        elif intent == TYPE_TEXT:
+            return cc.type_text(params.get("text", ""))
+
+        elif intent == PRESS_KEY:
+            return cc.press_key(params.get("key", ""))
+
+        elif intent == RUN_COMMAND:
+            command = params.get("command", raw_input)
+            return self.engine.execute_shell(command, self.current_directory)
+
+        elif intent == ZIP_FILES:
+            paths_str = params.get("paths", "")
+            return cc.zip_files(paths_str)
+
+        elif intent == UNZIP_FILE:
+            return cc.unzip_file(params.get("path", ""))
+
+        elif intent == DOWNLOAD_FILE:
+            return cc.download_file(params.get("url", ""))
+
+        elif intent == OPEN_FILE_MANAGER:
+            return cc.open_file_manager(params.get("path", self.current_directory))
+
+        elif intent == FIND_REPLACE:
+            return cc.find_replace_in_file(
+                params.get("file_path", ""),
+                params.get("find", ""),
+                params.get("replace", "")
+            )
+
+        else:
+            return {"success": False, "output": f"Action not yet implemented: {intent}", "action": intent}
+
+    # ─── Result Display ───────────────────────────────────────────────────
+
+    def _display_normal_result(self, result: dict):
+        """Display Normal Mode results with clean formatting."""
+        if result.get("success"):
+            color = "\033[92m"  # Green
+        else:
+            color = "\033[91m"  # Red
+
+        output = result.get("output", "")
+        print(f"\n{color}{output}\033[0m")
+
+    # ─── Direct Fallback (for unknown short commands) ─────────────────────
+
+    def _execute_direct_fallback(self, user_input: str):
+        """Fallback: try SystemAgent directly for unknown Normal Mode input."""
+        print(f"\n\033[90m{'─' * 60}\033[0m")
+        print(f"\033[93m[GUNA-ASTRA] ⚡ Normal Mode — Direct execution...\033[0m")
+
+        start = time.time()
+        task = {"description": user_input, "original_goal": user_input}
+        result = self.system_agent.run(task)
+        elapsed = time.time() - start
+
+        if result.get("status") == "pending_confirmation":
+            print(f"\n\033[93m{result['output']}\033[0m")
+            self._pending_confirmation = {"task": task, "plan": result}
+            return
+
+        output = result.get("output", "Done.")
+        status = result.get("status", "success")
+        icon = "✅" if status == "success" else "❌"
+
+        print(f"\033[92m[GUNA-ASTRA] {icon} {output}\033[0m")
+        print(f"\033[90m  ⚡ Completed in {elapsed:.1f}s\033[0m")
+
+        if SPEAK_RESPONSES and status == "success":
+            try:
+                from utils.system_tools import speak
+                speak(output[:200])
+            except Exception:
+                pass
+
+        save_task({"goal": user_input, "task_count": 1, "status": status, "mode": "normal", "direct": True})
+        save_conversation("user", user_input, self.session_id)
+        save_conversation("assistant", output, self.session_id)
+        self._remember("assistant", output)
+
+    def _execute_direct_api(self, text: str) -> dict:
+        """Direct execution for API."""
+        task = {"description": text, "original_goal": text}
+        result = self.system_agent.run(task)
+        save_task({"goal": text, "task_count": 1, "status": result.get("status"), "mode": "normal", "direct": True})
+        return result
+
+    # ─── Simple Pipeline (Normal Mode, needs LLM) ─────────────────────────
+
+    def _execute_simple_pipeline(self, user_input: str):
+        """Simplified pipeline for Normal Mode — plan + execute, skip testing."""
+        print(f"\n\033[90m{'─' * 60}\033[0m")
+        print(f"\033[93m[GUNA-ASTRA] ⚡ Normal Mode — Quick pipeline...\033[0m")
+
+        plan_result = self.planner.run({"goal": user_input})
+        if plan_result["status"] == "failed":
+            task = {"description": user_input, "original_goal": user_input}
+            result = self.system_agent.run(task)
+            print(f"\033[92m[GUNA-ASTRA] {result.get('output', 'Done.')}\033[0m")
+            self._remember("assistant", result.get("output", ""))
+            return
+
+        try:
+            tasks = json.loads(plan_result["output"])
+        except Exception:
+            tasks = [{"id": 1, "description": user_input, "agent": "SystemAgent", "priority": 1}]
+
+        for task in tasks:
+            task["original_goal"] = user_input
+            print(f"\033[94m  [{task['agent']}]\033[0m {task['description'][:80]}")
+
+            start = time.time()
+            result = self.dispatcher.dispatch(task)
+            elapsed = time.time() - start
+
+            if result.get("status") == "pending_confirmation":
+                print(f"\n\033[93m{result['output']}\033[0m")
+                self._pending_confirmation = {"task": task, "plan": result}
+                return
+
+            print(f"\033[90m  ↳ {result.get('status', '?').upper()} ({elapsed:.1f}s)\033[0m")
+
+        output = result.get("output", "Done.")
+        print(f"\n\033[92m[GUNA-ASTRA] {output}\033[0m")
+
+        save_task({"goal": user_input, "task_count": len(tasks), "status": "success", "mode": "normal"})
+        save_conversation("assistant", output, self.session_id)
+        self._remember("assistant", output)
+
+    # ─── Full Pipeline (Working Mode) ─────────────────────────────────────
+
+    def _process_goal_working_mode(self, goal: str):
+        """Working Mode: Full multi-agent pipeline with Open Interpreter enhancement."""
+        print(f"\n\033[90m{'─' * 60}\033[0m")
+        print(f"\033[95m[GUNA-ASTRA] 🤖 Working Mode — Full pipeline activated.\033[0m")
+        logger.info(f"Working Mode — Goal: {goal}")
+
+        save_conversation("user", goal, self.session_id)
+        all_results = []
+
+        # ── STEP 1: Planning ──────────────────────────────────────────────
+        print("\n\033[95m[Step 1/5] 📋 Planning your goal...\033[0m")
+        plan_result = self.planner.run({"goal": goal})
+
+        if plan_result["status"] == "failed":
+            print(f"\033[91m[GUNA-ASTRA] Planning failed: {plan_result['output']}\033[0m")
+            return
+
+        try:
+            tasks = json.loads(plan_result["output"])
+        except Exception:
+            tasks = [{"id": 1, "description": goal, "agent": "ResearchAgent", "priority": 1}]
+
+        print(f"\033[92m[Planner] Created {len(tasks)} tasks:\033[0m")
+        for t in tasks:
+            print(f"  {t['id']}. [{t['agent']}] {t['description']}")
+
+        # ── STEP 2: Dispatch & Execute ────────────────────────────────────
+        print(f"\n\033[95m[Step 2/5] ⚙️  Executing tasks...\033[0m")
+
+        iteration = 0
+        for task in tasks:
+            if iteration >= MAX_TASK_ITERATIONS:
+                logger.warning("Max task iterations reached.")
+                break
+            iteration += 1
+            task["original_goal"] = goal
+
+            if all_results:
+                task["context"] = all_results[-1].get("output", "")
+
+            print(f"\n\033[94m  [{task['agent']}]\033[0m {task['description'][:80]}")
+
+            start = time.time()
+            result = self.dispatcher.dispatch(task)
+            elapsed = time.time() - start
+
+            if result.get("status") == "pending_confirmation":
+                print(f"\n\033[93m{result['output']}\033[0m")
+                self._pending_confirmation = {"task": task, "plan": result}
+                return
+
+            print(f"\033[90m  ↳ {result.get('status', '?').upper()} ({elapsed:.1f}s)\033[0m")
+
+            # ── Open Interpreter Enhancement: auto-execute CodingAgent output ──
+            if "CodingAgent" in result.get("agent", ""):
+                code = result.get("output", "")
+                if code and len(code) > 20:
+                    print(f"\n\033[96m📝 Code generated. Running it now...\033[0m")
+                    exec_result = self.engine.execute_with_retry(code, task.get("description", ""))
+                    if exec_result.get("success"):
+                        result["output"] = (
+                            f"Code executed successfully.\n"
+                            f"Output:\n{exec_result.get('stdout', exec_result.get('output', ''))}"
+                        )
+                    else:
+                        result["output"] += f"\n\nExecution output:\n{exec_result.get('output', '')}"
+
+            all_results.append(result)
+
+        # ── STEP 3: Testing ───────────────────────────────────────────────
+        code_results = [r for r in all_results if "CodingAgent" in r.get("agent", "")]
+        if code_results:
+            print(f"\n\033[95m[Step 3/5] 🧪 Testing generated code...\033[0m")
+            for cr in code_results:
+                test_result = self.tester.run({
+                    "description": cr.get("task", ""),
+                    "code": cr.get("output", ""),
+                    "output": cr.get("output", "")
+                })
+                all_results.append(test_result)
+                print(f"\033[90m  ↳ Test: {test_result['status'].upper()}\033[0m")
+        else:
+            print(f"\n\033[90m[Step 3/5] 🧪 No code to test — skipping.\033[0m")
+
+        # ── STEP 4: Verification ──────────────────────────────────────────
+        print(f"\n\033[95m[Step 4/5] ✅ Verifying results...\033[0m")
+        outputs_summary = "\n".join([
+            f"[{r['agent']}]: {r['output'][:200]}" for r in all_results
+        ])
+        verify_result = self.verifier.run({
+            "original_goal": goal,
+            "outputs": outputs_summary
+        })
+        all_results.append(verify_result)
+
+        if verify_result["status"] == "failed":
+            print(f"\033[91m[Verification] Issues found:\n{verify_result['output']}\033[0m")
+
+        # ── STEP 5: Synthesize Final Response ─────────────────────────────
+        print(f"\n\033[95m[Step 5/5] 📝 Preparing your response...\033[0m")
+        final = self.synthesizer.run({
+            "original_goal": goal,
+            "results": all_results,
+            "mode": "working"
+        })
+
+        save_task({"goal": goal, "task_count": len(tasks), "status": final["status"], "mode": "working"})
+        save_conversation("assistant", final["output"], self.session_id)
+        self._remember("assistant", final["output"])
+
+        print(f"\n\033[96m{'═' * 60}\033[0m")
+        print(f"\033[96m[GUNA-ASTRA]\033[0m\n{final['output']}")
+        print(f"\033[96m{'═' * 60}\033[0m")
+
+        if SPEAK_RESPONSES:
+            try:
+                from utils.system_tools import speak
+                speak(final["output"][:200])
+            except Exception:
+                pass
+
+    def _process_goal_full_pipeline_api(self, text: str) -> dict:
+        """Working Mode via API."""
+        plan_result = self.planner.run({"goal": text})
+        if plan_result["status"] == "failed":
+            return plan_result
+        try:
+            tasks = json.loads(plan_result["output"])
+        except Exception:
+            tasks = [{"id": 1, "description": text, "agent": "ResearchAgent", "priority": 1}]
+
+        all_results = []
+        for task in tasks:
+            task["original_goal"] = text
+            if all_results:
+                task["context"] = all_results[-1].get("output", "")
+            result = self.dispatcher.dispatch(task)
+            all_results.append(result)
+
+        final = self.synthesizer.run({"original_goal": text, "results": all_results, "mode": "working"})
+        save_task({"goal": text, "task_count": len(tasks), "status": final["status"], "mode": "working"})
+        return final
+
+    # ─── Conversation Memory ──────────────────────────────────────────────
+
+    def _remember(self, role: str, content: str):
+        self._conversation.append({"role": role, "content": content})
+        if len(self._conversation) > CONVERSATION_HISTORY_SIZE:
+            self._conversation = self._conversation[-CONVERSATION_HISTORY_SIZE:]
+
+    # ─── Normal Mode History ──────────────────────────────────────────────
+
+    def _save_normal_history(self, user_input: str, intent: str, params: dict, result: dict):
+        """Save Normal Mode command to history for follow-up references."""
+        entry = {
+            "timestamp": datetime.now(),
+            "input": user_input,
+            "intent": intent,
+            "params": params,
+            "result": result,
+            "success": result.get("success", False)
+        }
+        self.normal_mode_history.append(entry)
+        if len(self.normal_mode_history) > self.MAX_NORMAL_HISTORY:
+            self.normal_mode_history = self.normal_mode_history[-self.MAX_NORMAL_HISTORY:]
+
+        # Also persist
+        save_task({"goal": user_input, "task_count": 1,
+                    "status": "success" if result.get("success") else "failed",
+                    "mode": "normal", "direct": True})
+        save_conversation("user", user_input, self.session_id)
+        save_conversation("assistant", result.get("output", ""), self.session_id)
+        self._remember("assistant", result.get("output", ""))
+
+    def _resolve_references(self, text: str) -> str:
+        """Resolve follow-up references like 'that file', 'again'."""
+        lower = text.lower().strip()
+
+        if not self.normal_mode_history:
+            return text
+
+        last = self.normal_mode_history[-1]
+
+        # "again" or "do it again" → repeat last command
+        if lower in ("again", "do it again", "repeat", "do that again"):
+            return last.get("input", text)
+
+        # "that file" → last file
+        if "that file" in lower:
+            for h in reversed(self.normal_mode_history):
+                if h["intent"] in (CREATE_FILE, DELETE_FILE):
+                    fname = h["params"].get("filename", h["params"].get("path", ""))
+                    if fname:
+                        return text.replace("that file", fname)
+
+        # "that folder" → last folder
+        if "that folder" in lower:
+            for h in reversed(self.normal_mode_history):
+                if h["intent"] in (CREATE_FOLDER, DELETE_FOLDER):
+                    fname = h["params"].get("folder_name", h["params"].get("path", ""))
+                    if fname:
+                        return text.replace("that folder", fname)
+
+        return text
+
+    # ─── Confirmation Handling ─────────────────────────────────────────────
+
+    def _resolve_confirmation(self, user_input: str):
+        if user_input.lower() in ("confirm", "yes", "y"):
+            task = self._pending_confirmation["task"]
+            self._pending_confirmation = None
+            print("\033[92m[GUNA-ASTRA] Confirmed. Proceeding...\033[0m")
+            result = self.system_agent._handle_by_keywords(task.get("description", ""), task)
+            print(f"\033[92m[SystemAgent] {result['output']}\033[0m")
+        else:
+            self._pending_confirmation = None
+            print("\033[93m[GUNA-ASTRA] Action cancelled.\033[0m")
+
+    # ─── Mode Display ─────────────────────────────────────────────────────
+
+    def _print_mode(self):
+        if self.current_mode == MODE_NORMAL:
+            print("\033[93m[GUNA-ASTRA] ⚡ NORMAL MODE — Fast direct execution.\033[0m")
+            print("\033[90m  Type 'mode working' for complex tasks. Type 'help' for commands.\033[0m")
+        else:
+            print("\033[95m[GUNA-ASTRA] 🤖 WORKING MODE — Full multi-agent pipeline.\033[0m")
+            print("\033[90m  Type 'mode normal' to switch back. Type 'help' for commands.\033[0m")
+
+    # ─── Mode Switching ───────────────────────────────────────────────────
+
+    def _change_mode(self, mode_input: str):
+        """Switch between Normal and Working modes."""
+        mode_map = {
+            "n": "normal", "normal": "normal",
+            "w": "working", "working": "working"
+        }
+        new_mode = mode_map.get(mode_input.lower(), None)
+
+        if new_mode:
+            self.current_mode = new_mode
+
+            if new_mode == "normal":
+                print(f"\n\033[93m⚡ Switched to NORMAL MODE\033[0m")
+                print("\033[90m  Fast, direct computer control. No agent pipeline.\033[0m")
+                print("\033[90m  Examples: 'open chrome', 'play music', 'volume up 20'\033[0m")
+            else:
+                print(f"\n\033[95m🤖 Switched to WORKING MODE\033[0m")
+                print("\033[90m  Full 11-agent pipeline for complex tasks.\033[0m")
+                print("\033[90m  Examples: 'create a PPT on AI', 'analyze this data'\033[0m")
+        else:
+            print(f"\033[91mUnknown mode: {mode_input}. Use 'normal' or 'working'.\033[0m")
+
+    # ─── Help System ──────────────────────────────────────────────────────
+
+    def _show_help(self):
+        nm = "→" if self.current_mode == MODE_NORMAL else " "
+        wm = "→" if self.current_mode == MODE_WORKING else " "
+        print(f"""
+\033[96m╔══════════════════════════════════════════════════════════════╗
+║              GUNA-ASTRA v2.0 — COMMAND REFERENCE             ║
+╠══════════════════════════════════════════════════════════════╣
+║  MODES                                                       ║
+║  mode normal (or: mode n) — Fast direct computer control     ║
+║  mode working (or: mode w) — Full 11-agent AI pipeline       ║
+╠══════════════════════════════════════════════════════════════╣\033[0m
+\033[93m{nm} ⚡ NORMAL MODE — QUICK EXAMPLES\033[0m
+
+  \033[96mAPPS & WEB:\033[0m
+  open chrome / launch spotify / start vs code
+  go to youtube.com / open github.com
+  play relaxing music / play lofi hip hop
+
+  \033[96mFILES:\033[0m
+  create file hello.txt / make folder projects
+  delete file test.py / move file.txt to Desktop
+  list files / search files *.py
+
+  \033[96mSYSTEM:\033[0m
+  volume up 20 / volume down / set volume to 50
+  mute / screenshot / show time / battery
+  sysinfo / lock screen / list processes / kill chrome
+  weather / weather in Mumbai
+  $ ping google.com — run shell commands with $ prefix
+
+\033[95m{wm} 🤖 WORKING MODE — COMPLEX TASK EXAMPLES\033[0m
+
+  Create a PowerPoint on climate change
+  Write a Python script that sorts a list
+  Research quantum computing and summarize it
+  Analyze this CSV data
+  Review this code for security vulnerabilities
+
+\033[96m╠══════════════════════════════════════════════════════════════╣
+║  SYSTEM COMMANDS                                             ║\033[0m
+  history — show recent tasks
+  status  — check Ollama, MongoDB, system health
+  clear   — clear the screen
+  exit    — quit GUNA-ASTRA
+\033[96m╚══════════════════════════════════════════════════════════════╝\033[0m
+""")
+
+    # ─── History ──────────────────────────────────────────────────────────
+
+    def _show_history(self):
+        from utils.memory_db import get_recent_tasks
+        tasks = get_recent_tasks(10)
+        if not tasks:
+            print("\033[90m[Memory] No task history found.\033[0m")
+        else:
+            print("\n\033[96m[Recent Tasks]\033[0m")
+            for t in tasks:
+                mode = t.get("mode", "?")
+                icon = "⚡" if mode == "normal" else "🤖" if mode == "working" else "?"
+                direct = " (direct)" if t.get("direct") else ""
+                print(f"  {icon} [{t.get('timestamp', '?')}] {t.get('goal', '?')}{direct}")
+
+    # ─── Status ───────────────────────────────────────────────────────────
+
+    def _show_status(self):
+        ollama_ok = check_ollama_health()
+        from utils.memory_db import MONGO_AVAILABLE
+        mode_name = "⚡ Normal Mode" if self.current_mode == MODE_NORMAL else "🤖 Working Mode"
+
+        # Check optional dependencies
+        pyautogui_ok = False
+        psutil_ok = False
+        try:
+            import pyautogui
+            pyautogui_ok = True
+        except ImportError:
+            pass
+        try:
+            import psutil
+            psutil_ok = True
+        except ImportError:
+            pass
+
+        print(f"""
+\033[96m[GUNA-ASTRA v2.0 Status]\033[0m
+  Current Mode:    {mode_name}
+  Working Dir:     {self.current_directory}
+  Ollama (Llama3): {'✅ Online' if ollama_ok else '❌ Offline (run: ollama serve)'}
+  MongoDB:         {'✅ Connected' if MONGO_AVAILABLE else '⚠️  Offline (using in-memory)'}
+  pyautogui:       {'✅ Available' if pyautogui_ok else '⚠️  Not installed'}
+  psutil:          {'✅ Available' if psutil_ok else '⚠️  Not installed'}
+  Agents online:   11/11
+  Conversation:    {len(self._conversation)} messages
+  Normal History:  {len(self.normal_mode_history)} commands
+  Session ID:      {self.session_id}
+""")
