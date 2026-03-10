@@ -21,7 +21,8 @@ from utils.memory_db import save_task, save_conversation, get_conversation_histo
 from config.settings import (
     MAX_TASK_ITERATIONS, TASK_TIMEOUT_SECONDS,
     DIRECT_EXECUTION_ENABLED, CONVERSATION_HISTORY_SIZE, SPEAK_RESPONSES,
-    MODE_NORMAL, MODE_WORKING, DEFAULT_MODE, AUTO_SWITCH_TO_WORKING
+    MODE_NORMAL, MODE_WORKING, DEFAULT_MODE, AUTO_SWITCH_TO_WORKING,
+    CHAT_SYSTEM_PROMPT
 )
 
 from agents.planner_agent import PlannerAgent
@@ -31,7 +32,7 @@ from agents.verification_agent import VerificationAgent
 from agents.result_synthesizer import ResultSynthesizer
 from agents.system_agent import SystemAgent
 
-from core.intent_classifier import IntentClassifier, COMPLEX_TASK, UNKNOWN, CHANGE_MODE
+from core.intent_classifier import IntentClassifier, COMPLEX_TASK, UNKNOWN, CHANGE_MODE, CONVERSATION
 from core.intent_classifier import (
     SHOW_HELP, SHOW_HISTORY, SHOW_STATUS, OPEN_APP, OPEN_URL, PLAY_MUSIC,
     PLAY_VIDEO, CREATE_FILE, CREATE_FOLDER, DELETE_FILE, DELETE_FOLDER,
@@ -41,7 +42,7 @@ from core.intent_classifier import (
     CHECK_WEBSITE, GET_WEATHER, EMPTY_TRASH, LOCK_SCREEN, SHUTDOWN,
     RESTART, SLEEP, GET_CLIPBOARD, SET_CLIPBOARD, TYPE_TEXT, PRESS_KEY,
     RUN_COMMAND, ZIP_FILES, UNZIP_FILE, DOWNLOAD_FILE, OPEN_FILE_MANAGER,
-    FIND_REPLACE
+    FIND_REPLACE, STOP, READ_DOC, GET_WINDOW
 )
 from core.computer_controller import ComputerController
 from core.interpreter_engine import InterpreterEngine
@@ -65,6 +66,7 @@ class GUNAASTRAOrchestrator:
         self.computer = ComputerController()
         self.engine = InterpreterEngine()
         self.classifier = IntentClassifier()
+        self.voice_manager = None
 
         self._pending_confirmation = None
         self._conversation = []
@@ -72,6 +74,7 @@ class GUNAASTRAOrchestrator:
         # Normal Mode command history for follow-ups
         self.normal_mode_history = []
         self.MAX_NORMAL_HISTORY = 20
+        self._last_doc_path = None
 
     # ─── Path Shortening ──────────────────────────────────────────────────
 
@@ -158,7 +161,9 @@ class GUNAASTRAOrchestrator:
 
             # ── ROUTING DECISION ──
             if self.current_mode == MODE_NORMAL:
-                if intent == COMPLEX_TASK:
+                if intent == CONVERSATION:
+                    self._handle_conversation(user_input)
+                elif intent == COMPLEX_TASK:
                     if AUTO_SWITCH_TO_WORKING:
                         print(f"\n\033[93m[GUNA-ASTRA] 💡 This looks like a complex task.\033[0m")
                         print(f"\033[93m[GUNA-ASTRA] Switching to WORKING MODE for this request...\033[0m")
@@ -168,12 +173,8 @@ class GUNAASTRAOrchestrator:
                               f"Say 'mode working' to switch.\033[0m")
                         self._execute_simple_pipeline(user_input)
                 elif intent == UNKNOWN:
-                    if len(user_input.split()) <= 6:
-                        # Short unknown — try direct system execution
-                        self._execute_direct_fallback(user_input)
-                    else:
-                        print(f"\n\033[93m[GUNA-ASTRA] Switching to WORKING MODE...\033[0m")
-                        self._process_goal_working_mode(user_input)
+                    # Unknown with action keywords — try direct system execution
+                    self._execute_direct_fallback(user_input)
                 else:
                     # Execute in Normal Mode via ComputerController
                     result = self._execute_normal_mode(intent, params, user_input)
@@ -181,7 +182,10 @@ class GUNAASTRAOrchestrator:
                     self._save_normal_history(user_input, intent, params, result)
 
             elif self.current_mode == MODE_WORKING:
-                self._process_goal_working_mode(user_input)
+                if intent == CONVERSATION:
+                    self._handle_conversation(user_input)
+                else:
+                    self._process_goal_working_mode(user_input)
 
     # ─── API Entry Point ──────────────────────────────────────────────────
 
@@ -192,8 +196,12 @@ class GUNAASTRAOrchestrator:
         intent = classification["intent"]
         params = classification["params"]
 
+        if intent == CONVERSATION:
+            response = self._handle_conversation(text, silent=True)
+            return {"status": "success", "output": response, "agent": "DirectChat"}
+
         if self.current_mode == MODE_NORMAL:
-            if intent in (COMPLEX_TASK, UNKNOWN) and len(text.split()) > 6:
+            if intent in (COMPLEX_TASK,) and len(text.split()) > 6:
                 return self._process_goal_full_pipeline_api(text)
             elif intent == UNKNOWN:
                 return self._execute_direct_api(text)
@@ -203,6 +211,37 @@ class GUNAASTRAOrchestrator:
                         "output": result.get("output", ""), "agent": "ComputerController"}
         else:
             return self._process_goal_full_pipeline_api(text)
+
+    def process_voice_command(self, text: str) -> str:
+        """Used specifically by the VoiceManager to inject speech text and return a synthesized string response."""
+        result_dict = self.process_command(text)
+        
+        # Simple extraction of standard output for TTS reading
+        if result_dict.get('output'):
+            return str(result_dict['output'])
+        elif result_dict.get('result'):
+            return str(result_dict['result'])
+        return "I have completed the task."
+
+    def start_voice_service(self):
+        """Starts the continuous acoustic VoiceManager in a background thread."""
+        from config.settings import VOICE_MODE_ENABLED
+        if not VOICE_MODE_ENABLED:
+            logger.warning("Voice mode requested but VOICE_MODE_ENABLED=False in settings.py")
+            return
+            
+        try:
+            from core.voice.voice_manager import VoiceManager
+            import threading
+            
+            self.voice_manager = VoiceManager(self)
+            
+            # Start the heavy voice loop in a daemon thread so it exits when CLI exits
+            voice_thread = threading.Thread(target=self.voice_manager.start_listening, daemon=True)
+            voice_thread.start()
+            logger.info("Voice Service started in background thread.")
+        except Exception as e:
+            logger.error(f"Failed to start voice service: {e}")
 
     # ─── Normal Mode Execution ────────────────────────────────────────────
 
@@ -353,6 +392,31 @@ class GUNAASTRAOrchestrator:
                 params.get("replace", "")
             )
 
+        elif intent == READ_DOC:
+            path = params.get("path", "")
+            if path == "last_opened":
+                path = self._last_doc_path
+            
+            if not path or not os.path.exists(path):
+                # Try to find a file if only a name was given
+                search_res = cc.search_files(path)
+                if search_res["success"] and "Found" in search_res["output"]:
+                    # Heuristic: pick the first one
+                    found_path = search_res["output"].split("\n")[1].strip()
+                    path = found_path
+            
+            if path:
+                self._last_doc_path = path
+                return cc.read_document(path)
+            return {"success": False, "output": "I couldn't find the document you want me to read.", "action": READ_DOC}
+
+        elif intent == GET_WINDOW:
+            return cc.get_active_window()
+
+        elif intent == STOP:
+            # This is primarily handled in VoiceManager, but we can acknowledge it here
+            return {"success": True, "output": "Stopping all tasks.", "action": STOP}
+
         else:
             return {"success": False, "output": f"Action not yet implemented: {intent}", "action": intent}
 
@@ -403,6 +467,55 @@ class GUNAASTRAOrchestrator:
         save_conversation("user", user_input, self.session_id)
         save_conversation("assistant", output, self.session_id)
         self._remember("assistant", output)
+
+    # ── Direct Conversation (LLM Chat) ────────────────────────────────────
+
+    def _handle_conversation(self, user_input: str, silent: bool = False) -> str:
+        """Handle conversational input by chatting directly with the LLM."""
+        from utils.llm_client import query_llm
+
+        if not silent:
+            print(f"\n\033[90m{'─' * 60}\033[0m")
+            print(f"\033[96m[GUNA-ASTRA] 💬 Chatting...\033[0m")
+
+        # Build context from recent conversation history
+        context_lines = []
+        for msg in self._conversation[-6:]:  # Last 6 messages for context
+            role = msg["role"].capitalize()
+            context_lines.append(f"{role}: {msg['content']}")
+
+        if context_lines:
+            prompt = (
+                "Recent conversation:\n"
+                + "\n".join(context_lines)
+                + f"\n\nUser: {user_input}\n\nRespond naturally:"
+            )
+        else:
+            prompt = user_input
+
+        start = time.time()
+        response = query_llm(prompt, system_prompt=CHAT_SYSTEM_PROMPT)
+        elapsed = time.time() - start
+
+        if not response or response.startswith("ERROR"):
+            response = "I'm having trouble connecting to my brain right now. Make sure Ollama is running!"
+
+        if not silent:
+            print(f"\n\033[92m[GUNA-ASTRA]\033[0m {response}")
+            print(f"\033[90m  💬 Replied in {elapsed:.1f}s\033[0m")
+
+            if SPEAK_RESPONSES:
+                try:
+                    from utils.system_tools import speak
+                    speak(response[:200])
+                except Exception:
+                    pass
+
+        save_conversation("user", user_input, self.session_id)
+        save_conversation("assistant", response, self.session_id)
+        self._remember("assistant", response)
+
+        return response
 
     def _execute_direct_api(self, text: str) -> dict:
         """Direct execution for API."""

@@ -54,7 +54,11 @@ SHOW_HELP = "SHOW_HELP"
 SHOW_HISTORY = "SHOW_HISTORY"
 SHOW_STATUS = "SHOW_STATUS"
 CHANGE_MODE = "CHANGE_MODE"
+STOP = "STOP"
+READ_DOC = "READ_DOC"
+GET_WINDOW = "GET_WINDOW"
 COMPLEX_TASK = "COMPLEX_TASK"
+CONVERSATION = "CONVERSATION"
 UNKNOWN = "UNKNOWN"
 
 
@@ -152,6 +156,20 @@ EXACT_MATCHES = {
     "open file manager": OPEN_FILE_MANAGER,
     "open explorer": OPEN_FILE_MANAGER,
     "file explorer": OPEN_FILE_MANAGER,
+    # Stop
+    "stop": STOP,
+    "halt": STOP,
+    "cancel": STOP,
+    "quiet": STOP,
+    "shut up": STOP,
+    "stop talking": STOP,
+    "stop reading": STOP,
+    # Screen / Window
+    "what's on my screen": GET_WINDOW,
+    "whats on my screen": GET_WINDOW,
+    "active window": GET_WINDOW,
+    "what am i looking at": GET_WINDOW,
+    "what window is open": GET_WINDOW,
     # Clear
     "clear": "CLEAR_SCREEN",
 }
@@ -343,6 +361,18 @@ _add(r"^open\s+(?:file\s+)?(?:manager|explorer|finder)(?:\s+(?:at|in)\s+(.+))?$"
 _add(r"^(?:find|replace)\s+(.+?)\s+with\s+(.+?)\s+in\s+(.+)$", FIND_REPLACE,
      lambda m: {"find": m.group(1).strip(), "replace": m.group(2).strip(), "file_path": m.group(3).strip()})
 
+# ── Stop
+_add(r"^(?:stop|halt|cancel|quiet|enough|shut\s+up)(?:\s+talking|\s+reading|\s+working)?$", STOP, None)
+
+# ── Read document
+_add(r"^(?:read|open\s+and\s+read|extract\s+text\s+from)\s+(?:the\s+)?(?:file|doc|document|pdf|docx)?\s*(.+)$", READ_DOC, _extract_path)
+_add(r"^read\s+it(?:\s+to\s+me)?$", READ_DOC, lambda m: {"path": "last_opened"})
+
+# ── Active window
+_add(r"^(?:what|which)\s+(?:window|app|application)\s+is\s+(?:open|active|focused)$", GET_WINDOW, None)
+_add(r"^(?:what|whats|what's)\s+on\s+(?:my\s+)?screen$", GET_WINDOW, None)
+_add(r"^what\s+am\s+i\s+looking\s+at$", GET_WINDOW, None)
+
 # ── Empty trash
 _add(r"^(?:empty|clear)\s+(?:the\s+)?(?:recycle\s*bin|trash)$", EMPTY_TRASH, None)
 
@@ -377,6 +407,54 @@ _COMPLEX_PATTERNS = [
 ]
 
 
+# ── Conversational Patterns ───────────────────────────────────────────────────
+
+CONVERSATION_EXACT = {
+    # Greetings
+    "hi", "hello", "hey", "yo", "sup", "howdy", "hola", "namaste",
+    "good morning", "good afternoon", "good evening", "good night",
+    "morning", "evening",
+    # How are you
+    "how are you", "how are you doing", "how's it going",
+    "hows it going", "how do you do", "what's up", "whats up",
+    "how are you today", "how you doing",
+    # Identity / meta
+    "who are you", "what are you", "what's your name",
+    "whats your name", "what can you do", "what do you do",
+    "are you an ai", "are you real", "are you a bot",
+    # Casual
+    "tell me a joke", "joke", "tell me something",
+    "tell me something interesting", "i'm bored", "im bored",
+    "thank you", "thanks", "thank you so much", "thanks a lot",
+    "ok", "okay", "cool", "nice", "great", "awesome", "perfect",
+    "bye", "goodbye", "see you", "see ya", "later",
+    "yes", "no", "yeah", "nah", "yep", "nope",
+}
+
+_CONVERSATION_PATTERNS = [
+    # Questions about concepts / knowledge
+    re.compile(r"^what\s+(?:is|are|was|were)\s+.+", re.IGNORECASE),
+    re.compile(r"^who\s+(?:is|are|was|were)\s+.+", re.IGNORECASE),
+    re.compile(r"^where\s+(?:is|are|was|were)\s+.+", re.IGNORECASE),
+    re.compile(r"^when\s+(?:is|are|was|were|did)\s+.+", re.IGNORECASE),
+    re.compile(r"^why\s+(?:is|are|do|does|did|was|were|can|should)\s+.+", re.IGNORECASE),
+    re.compile(r"^how\s+(?:does|do|did|can|is|are|to|much|many|long|far|old)\s+.+", re.IGNORECASE),
+    re.compile(r"^(?:can|could|would|will|shall)\s+you\s+(?:tell|explain|describe|help)\s+.+", re.IGNORECASE),
+    re.compile(r"^(?:tell|explain|describe|teach)\s+(?:me\s+)?(?:about|what|how|why)\s+.+", re.IGNORECASE),
+    re.compile(r"^(?:do you|can you|have you|are you|will you)\s+.+", re.IGNORECASE),
+    # Opinions / feelings
+    re.compile(r"^(?:what\s+do\s+you\s+think)\s+.+", re.IGNORECASE),
+    re.compile(r"^(?:i\s+(?:think|feel|want|need|like|love|hate|wish))\s+.+", re.IGNORECASE),
+    # Greetings with extras
+    re.compile(r"^(?:hi|hello|hey|yo)\s+.+", re.IGNORECASE),
+    # Suggestions
+    re.compile(r"^(?:suggest|recommend)\s+(?:me\s+)?(?:a|some|the)\s+.+", re.IGNORECASE),
+    re.compile(r"^(?:give me|tell me)\s+(?:a|some|the|an)\s+.+", re.IGNORECASE),
+    # Definitions
+    re.compile(r"^(?:define|meaning of|definition of)\s+.+", re.IGNORECASE),
+]
+
+
 # ── Classifier ─────────────────────────────────────────────────────────────────
 
 class IntentClassifier:
@@ -393,12 +471,12 @@ class IntentClassifier:
         clean = text.strip()
         lower = clean.lower()
 
-        # ── STEP 1: Exact match (confidence 1.0) ──
+        # ── STEP 1: Exact match — system commands (confidence 1.0) ──
         if lower in EXACT_MATCHES:
             intent = EXACT_MATCHES[lower]
             return {"intent": intent, "params": {}, "confidence": 1.0}
 
-        # ── STEP 2: Regex pattern matching (confidence 0.9) ──
+        # ── STEP 2: Regex pattern matching — system commands (confidence 0.9) ──
         for pattern, intent, extractor in REGEX_PATTERNS:
             m = pattern.match(clean)
             if m:
@@ -414,18 +492,26 @@ class IntentClassifier:
             if pat.search(clean):
                 return {"intent": COMPLEX_TASK, "params": {}, "confidence": 0.85}
 
-        # ── STEP 4: Fuzzy fallback (confidence 0.5–0.7) ──
+        # ── STEP 4: Conversation detection (confidence 0.9) ──
+        if lower in CONVERSATION_EXACT:
+            return {"intent": CONVERSATION, "params": {}, "confidence": 0.9}
+
+        for pat in _CONVERSATION_PATTERNS:
+            if pat.match(clean):
+                return {"intent": CONVERSATION, "params": {}, "confidence": 0.85}
+
+        # ── STEP 5: Fuzzy fallback ──
         word_count = len(clean.split())
 
-        # Long inputs are likely complex tasks
+        # Long inputs without complex keywords → conversation (chat with LLM)
         if word_count >= 8:
-            return {"intent": COMPLEX_TASK, "params": {}, "confidence": 0.7}
+            return {"intent": CONVERSATION, "params": {}, "confidence": 0.7}
 
-        # Short inputs with action keywords
+        # Short inputs with action keywords → try system execution
         action_words = ["open", "run", "start", "create", "make", "show",
                         "get", "set", "delete", "move", "copy", "play"]
         if any(lower.startswith(w) for w in action_words):
             return {"intent": UNKNOWN, "params": {}, "confidence": 0.5}
 
-        # Default: unknown
-        return {"intent": UNKNOWN, "params": {}, "confidence": 0.3}
+        # Default: treat as conversation (chat) rather than unknown
+        return {"intent": CONVERSATION, "params": {}, "confidence": 0.5}
