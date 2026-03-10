@@ -99,8 +99,13 @@ def run_health_check():
 
 def main_cli():
     """Interactive CLI mode."""
+    import argparse
     from utils.banner import print_banner
     from core.orchestrator import GUNAASTRAOrchestrator
+    
+    parser = argparse.ArgumentParser(description="GUNA-ASTRA AI Assistant")
+    parser.add_argument("--voice", action="store_true", help="Start the background Voice Listener on boot")
+    args = parser.parse_args()
 
     # Startup sequence
     install_missing_packages()
@@ -109,6 +114,12 @@ def main_cli():
 
     # Run orchestrator
     orchestrator = GUNAASTRAOrchestrator()
+    
+    if args.voice:
+        import config.settings
+        config.settings.VOICE_MODE_ENABLED = True
+        orchestrator.start_voice_service()
+        
     orchestrator.run()
 
 

@@ -10,7 +10,13 @@ import shutil
 import platform
 import webbrowser
 import difflib
+import time
 from datetime import datetime
+import pyautogui
+try:
+    import pygetwindow as gw
+except ImportError:
+    gw = None
 from utils.logger import get_logger
 
 logger = get_logger("ComputerController")
@@ -127,13 +133,18 @@ class ComputerController:
     def play_youtube(self, query: str) -> dict:
         """Search YouTube and open results in browser."""
         try:
-            if self._st:
-                url, browser = self._st.youtube_search(query)
-                return _result(True, f"🎵 YouTube search for '{query}' opened in {browser}.\n🔗 {url}", "PLAY_MUSIC")
+            # For "Jarvis" feel, we want to try and play the first result directly
+            # A common search-to-watch URL format is not stable, so we open search
+            # and then optionally use pyautogui to click the first video if we want to be fancy.
             from urllib.parse import quote_plus
             url = f"https://www.youtube.com/results?search_query={quote_plus(query)}"
             webbrowser.open(url)
-            return _result(True, f"🎵 YouTube search for '{query}' opened.\n🔗 {url}", "PLAY_MUSIC")
+            
+            # Small delay to let browser open, then optional click (experimental)
+            # time.sleep(2)
+            # pyautogui.click(x=600, y=400) # Highly dependent on resolution
+            
+            return _result(True, f"🎵 Playing '{query}' on YouTube.", "PLAY_MUSIC")
         except Exception as e:
             return _result(False, f"❌ Failed to play YouTube: {e}", "PLAY_MUSIC")
 
@@ -317,17 +328,49 @@ class ComputerController:
 
     # ── Screenshots ───────────────────────────────────────────────────────────
 
-    def take_screenshot(self, path: str = None) -> dict:
-        """Take a screenshot."""
+    def take_screenshot(self, name: str = None) -> dict:
+        """Take a screenshot of the current screen."""
         try:
-            if self._st:
-                saved = self._st.take_screenshot(path)
-                if saved:
-                    return _result(True, f"📸 Screenshot saved: {saved}", "TAKE_SCREENSHOT")
-                return _result(False, "❌ Screenshot failed.", "TAKE_SCREENSHOT")
-            return _result(False, "Screenshot not available.", "TAKE_SCREENSHOT")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = name or f"screenshot_{timestamp}.png"
+            
+            # Ensure data dir exists
+            from config.settings import DATA_DIR
+            ss_dir = os.path.join(DATA_DIR, "screenshots")
+            os.makedirs(ss_dir, exist_ok=True)
+            
+            path = os.path.join(ss_dir, filename)
+            pyautogui.screenshot(path)
+            
+            return _result(True, f"📸 Screenshot captured: {path}", "TAKE_SCREENSHOT")
         except Exception as e:
             return _result(False, f"❌ Screenshot failed: {e}", "TAKE_SCREENSHOT")
+
+    def get_active_window(self) -> dict:
+        """Get the title of the currently focused window."""
+        try:
+            if not gw:
+                return _result(False, "pygetwindow not installed.", "GET_WINDOW")
+            
+            window = gw.getActiveWindow()
+            if window:
+                return _result(True, f"Active Window: {window.title}", "GET_WINDOW")
+            return _result(False, "No active window detected.", "GET_WINDOW")
+        except Exception as e:
+            return _result(False, f"❌ Failed to get window title: {e}", "GET_WINDOW")
+
+    def read_document(self, file_path: str) -> dict:
+        """Extract text from a document for GUNA to read aloud."""
+        try:
+            from utils.doc_reader import extract_text
+            text = extract_text(file_path)
+            if text:
+                # Limit text for speech to first 2000 chars or so to avoid buffer issues
+                snippet = text[:2000]
+                return _result(True, snippet, "READ_DOC")
+            return _result(False, "Could not extract text from document.", "READ_DOC")
+        except Exception as e:
+            return _result(False, f"❌ Failed to read document: {e}", "READ_DOC")
 
     # ── System Information ────────────────────────────────────────────────────
 

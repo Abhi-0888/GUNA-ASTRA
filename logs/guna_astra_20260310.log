@@ -1,0 +1,75 @@
+2026-03-10 22:49:00,643 [MongoDB] MongoDB connected successfully.
+2026-03-10 22:49:17,563 [GUNA-ASTRA] Voice Service started in background thread.
+2026-03-10 22:49:17,563 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
+2026-03-10 22:49:18,381 [TTSEngine] TTS initialized with a female/local voice.
+2026-03-10 22:49:18,381 [TTSEngine] Speaking: GUNA-ASTRA is initializing speech models. This may take a moment on the first run.
+2026-03-10 22:49:26,234 [VoiceManager] Initializing Voice ML Models... this may take a moment.
+2026-03-10 22:49:53,645 [WakeWord] Wake word models (Jarvis/Alexa/Mycroft) initialized as triggers.
+2026-03-10 22:50:03,479 [SpeakerVerification] Resemblyzer VoiceEncoder loaded.
+2026-03-10 22:50:03,482 [SpeakerVerification] Loaded authorized voice embedding from D:\me\GUNA-ASTRA\data\user_embedding.npy
+2026-03-10 22:50:10,187 [STTEngine] Loading Whisper model (small)...
+2026-03-10 22:50:15,765 [STTEngine] Whisper STT initialized successfully.
+2026-03-10 22:50:15,765 [VoiceManager] ✅ All Voice Modules Initialized successfully.
+2026-03-10 22:50:15,766 [VoiceManager] Starting microphone stream...
+2026-03-10 22:50:17,012 [TTSEngine] Speaking: Voice systems online. Listening for wake word.
+2026-03-10 22:50:17,841 [WakeWord] Listening for wake word...
+2026-03-10 22:50:24,527 [WakeWord] Wake word detected! (hey_jarvis_v0.1 score: 0.42)
+2026-03-10 22:50:24,528 [TTSEngine] Speaking: Yes?
+2026-03-10 22:50:25,421 [VoiceManager] 🎙️ Recording command (speak now)...
+2026-03-10 22:50:29,686 [VoiceManager] Silence detected. Stopping recording.
+2026-03-10 22:50:37,642 [SpeakerVerification] Voice similarity score: 0.749 (Threshold: 0.7)
+2026-03-10 22:50:37,642 [SpeakerVerification] ✅ Voice verified: Authorized User.
+2026-03-10 22:50:37,643 [STTEngine] Transcribing audio...
+2026-03-10 22:50:49,114 [STTEngine] Transcribed Text: 'Opening. Open YouTube.'
+2026-03-10 22:50:49,118 [SystemAgent] System task: Opening. Open YouTube.
+2026-03-10 22:50:49,303 [TTSEngine] Speaking:  Opened YouTube search for 'ing. .' in Chrome.
+ https://www.youtube.com/results?searchquery=ing.+.
+2026-03-10 22:50:49,400 [WakeWord] Wake word models (Jarvis/Alexa/Mycroft) initialized as triggers.
+2026-03-10 22:50:49,903 [WakeWord] Listening for wake word...
+2026-03-10 22:50:50,602 [WakeWord] Listening for wake word...
+2026-03-10 22:50:51,725 [WakeWord] Wake word detected! (hey_jarvis_v0.1 score: 0.51)
+2026-03-10 22:50:51,741 [TTSEngine] Speaking: Yes?
+2026-03-10 22:50:52,560 [VoiceManager] 🎙️ Recording command (speak now)...
+2026-03-10 22:51:02,469 [VoiceManager] Silence detected. Stopping recording.
+2026-03-10 22:51:02,667 [SpeakerVerification] Voice similarity score: 0.718 (Threshold: 0.7)
+2026-03-10 22:51:02,668 [SpeakerVerification] ✅ Voice verified: Authorized User.
+2026-03-10 22:51:02,668 [STTEngine] Transcribing audio...
+2026-03-10 22:51:09,016 [STTEngine] Transcribed Text: ''
+2026-03-10 22:51:09,016 [VoiceManager] Empty transcription.
+2026-03-10 22:51:09,017 [TTSEngine] Speaking: Tell me again, I missed that.
+2026-03-10 22:51:09,993 [WakeWord] Listening for wake word...
+2026-03-10 22:51:10,380 [WakeWord] Wake word detected! (hey_jarvis_v0.1 score: 0.96)
+2026-03-10 22:51:10,381 [TTSEngine] Speaking: Yes?
+2026-03-10 22:51:11,200 [VoiceManager] 🎙️ Recording command (speak now)...
+2026-03-10 22:51:15,283 [VoiceManager] Silence detected. Stopping recording.
+2026-03-10 22:51:15,335 [SpeakerVerification] Voice similarity score: 0.535 (Threshold: 0.7)
+2026-03-10 22:51:15,335 [SpeakerVerification] ❌ Voice rejected: Unauthorized User.
+2026-03-10 22:51:15,336 [TTSEngine] Speaking: Unauthorized voice detected.
+2026-03-10 22:51:16,371 [WakeWord] Listening for wake word...
+2026-03-10 22:51:16,784 [WakeWord] Wake word detected! (hey_jarvis_v0.1 score: 0.55)
+2026-03-10 22:51:16,785 [TTSEngine] Speaking: Yes?
+2026-03-10 22:51:17,668 [VoiceManager] 🎙️ Recording command (speak now)...
+2026-03-10 22:51:22,252 [VoiceManager] Silence detected. Stopping recording.
+2026-03-10 22:51:22,303 [SpeakerVerification] Voice similarity score: 0.582 (Threshold: 0.7)
+2026-03-10 22:51:22,304 [SpeakerVerification] ❌ Voice rejected: Unauthorized User.
+2026-03-10 22:51:22,305 [TTSEngine] Speaking: Unauthorized voice detected.
+2026-03-10 22:51:23,377 [WakeWord] Listening for wake word...
+2026-03-10 22:51:23,861 [WakeWord] Wake word detected! (hey_jarvis_v0.1 score: 0.44)
+2026-03-10 22:51:23,862 [TTSEngine] Speaking: Yes?
+2026-03-10 22:51:24,716 [VoiceManager] 🎙️ Recording command (speak now)...
+2026-03-10 22:51:29,293 [VoiceManager] Silence detected. Stopping recording.
+2026-03-10 22:51:29,343 [SpeakerVerification] Voice similarity score: 0.637 (Threshold: 0.7)
+2026-03-10 22:51:29,344 [SpeakerVerification] ❌ Voice rejected: Unauthorized User.
+2026-03-10 22:51:29,344 [TTSEngine] Speaking: Unauthorized voice detected.
+2026-03-10 22:51:30,400 [WakeWord] Listening for wake word...
+2026-03-10 22:52:23,229 [MongoDB] MongoDB connected successfully.
+2026-03-10 22:52:26,425 [GUNA-ASTRA] Voice Service started in background thread.
+2026-03-10 22:52:26,426 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
+2026-03-10 22:52:26,748 [TTSEngine] TTS initialized with a female/local voice.
+2026-03-10 22:52:26,748 [TTSEngine] Speaking: GUNA-ASTRA is initializing speech models. This may take a moment on the first run.
+2026-03-10 22:52:33,977 [VoiceManager] Initializing Voice ML Models... this may take a moment.
+2026-03-10 22:56:23,344 [MongoDB] MongoDB connected successfully.
+2026-03-10 22:56:25,878 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
+2026-03-10 22:56:52,991 [SystemAgent] System task: hey  whats my name
+2026-03-10 22:56:52,992 [SystemAgent] Thinking: Plan the OS action for this task:
+hey  whats my name...
