@@ -50,7 +50,18 @@ Include key facts, explanations, and relevant details."""
         return self.report("success", response, task)
 
     def _search(self, query: str) -> str:
-        """Use DuckDuckGo Instant Answer API (free, no key required)."""
+        """Search for info. Tries duckduckgo_search library first, then Instant Answer API."""
+        # v2: Try duckduckgo_search library (more comprehensive results)
+        try:
+            from duckduckgo_search import DDGS
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=5))
+            if results:
+                return "\n".join(f"• {r['title']}: {r['body'][:200]}" for r in results[:3])
+        except Exception:
+            pass
+
+        # Fallback: DuckDuckGo Instant Answer API
         try:
             params = {
                 "q": query,

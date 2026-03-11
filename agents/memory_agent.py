@@ -1,6 +1,7 @@
 """
 Agent 3: Memory Agent
 The ONLY agent that reads/writes to MongoDB.
+v2: Also supports simple execute() interface for direct remember/recall.
 """
 
 import utils.memory_db as db
@@ -10,6 +11,19 @@ from agents.base_agent import BaseAgent
 class MemoryAgent(BaseAgent):
     def __init__(self):
         super().__init__("MemoryAgent", "You are the memory manager for GUNA-ASTRA.")
+
+    def execute(self, task: str) -> str:
+        """v2 interface: simple string-based memory operations."""
+        t = task.lower()
+        if "remember" in t or "save" in t or "store" in t:
+            db.save_task({"goal": task[:200], "status": "memorized"})
+            return f"✅ Saved to memory: {task[:100]}"
+        if "recall" in t or "what did" in t or "do you remember" in t:
+            recent = db.get_recent_tasks(5)
+            if recent:
+                return "Recent memory:\n" + "\n".join(f"• {r.get('goal', '?')}" for r in recent)
+            return "Nothing in memory yet."
+        return self._ask("You manage memory. Answer the user's memory-related request.", task)
 
     def run(self, task: dict) -> dict:
         action = task.get("action", "save")

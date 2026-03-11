@@ -6,6 +6,12 @@ Two Modes:
   NORMAL MODE  — default, fast direct execution via IntentClassifier + ComputerController
   WORKING MODE — full multi-agent pipeline for complex goals
 
+v2 Smart Routing (layered on top of modes):
+  CHAT       — instant reply, no agents
+  SINGLE     — one agent handles it
+  MULTI      — full pipeline
+  BACKGROUND — run in background thread
+
 Smart routing in Normal Mode bypasses LLM for instant system commands.
 Enhanced with InterpreterEngine for autonomous code execution.
 """
@@ -14,10 +20,12 @@ import json
 import os
 import re
 import time
+import random
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from utils.logger import get_logger
-from utils.llm_client import check_ollama_health
-from utils.memory_db import save_task, save_conversation, get_conversation_history
+from utils.llm_client import check_ollama_health, LLMClient
+from utils.memory_db import save_task, save_conversation, get_conversation_history, MemoryDB
 from config.settings import (
     MAX_TASK_ITERATIONS, TASK_TIMEOUT_SECONDS,
     DIRECT_EXECUTION_ENABLED, CONVERSATION_HISTORY_SIZE, SPEAK_RESPONSES,
@@ -31,6 +39,9 @@ from agents.testing_agent import TestingAgent
 from agents.verification_agent import VerificationAgent
 from agents.result_synthesizer import ResultSynthesizer
 from agents.system_agent import SystemAgent
+from agents.research_agent import ResearchAgent
+from agents.coding_agent import CodingAgent
+from agents.memory_agent import MemoryAgent
 
 from core.intent_classifier import IntentClassifier, COMPLEX_TASK, UNKNOWN, CHANGE_MODE, CONVERSATION
 from core.intent_classifier import (
@@ -46,8 +57,25 @@ from core.intent_classifier import (
 )
 from core.computer_controller import ComputerController
 from core.interpreter_engine import InterpreterEngine
+from core.intent_engine import classify as v2_classify, CHAT, SINGLE, MULTI, BACKGROUND
 
 logger = get_logger("GUNA-ASTRA")
+
+# ── v2 Chat Responses ──────────────────────────────────────────────────────
+CHAT_RESPONSES = {
+    "greetings": [
+        "Hey {name}! What can I do for you? 👋",
+        "Hello {name}! Ready to assist! ⚡",
+        "Hi {name}! What's on your mind?",
+    ],
+    "farewell": ["See you later! 👋", "Bye {name}! 👋", "Take care!"],
+    "thanks": ["Happy to help!", "No problem! 😊", "You're welcome!"],
+    "status": ["All systems running! ⚡", "I'm here and ready!"],
+    "identity": [
+        "I'm GUNA-ASTRA — your AI-powered system agent!",
+        "I'm GUNA-ASTRA v2.0, your personal AI assistant!",
+    ],
+}
 
 
 class GUNAASTRAOrchestrator:
@@ -76,6 +104,16 @@ class GUNAASTRAOrchestrator:
         self.MAX_NORMAL_HISTORY = 20
         self._last_doc_path = None
 
+        # ── v2 Smart Routing additions ──
+        self.llm = LLMClient()
+        self.memory = MemoryDB()
+        self.user_name = self._load_user_name()
+        self.bg_futures = []
+        self._executor = ThreadPoolExecutor(max_workers=3)
+        self.research_agent = ResearchAgent()
+        self.coding_agent = CodingAgent()
+        self.memory_agent = MemoryAgent()
+
     # ─── Path Shortening ──────────────────────────────────────────────────
 
     def _shorten_path(self, path: str) -> str:
@@ -85,7 +123,117 @@ class GUNAASTRAOrchestrator:
             return "~" + path[len(home):]
         return path
 
-    # ─── Main Interactive Loop ────────────────────────────────────────────
+    # ─── v2 User Name Memory ─────────────────────────────────────────────
+
+    def _load_user_name(self) -> str:
+        """Load user name from memory, if previously stored."""
+        try:
+            data = self.memory.recall("user_name")
+            if data and isinstance(data, dict):
+                return data.get("name", "")
+        except Exception:
+            pass
+        return ""
+
+    def _save_user_name(self, name: str):
+        """Persist user name to memory."""
+        self.user_name = name
+        self.memory.remember("user_name", {"name": name})
+
+    # ─── v2 Smart Routing ─────────────────────────────────────────────────
+
+    def _v2_route(self, user_input: str) -> str | None:
+        """
+        v2 smart intent routing. Returns a response string if handled,
+        or None to fall through to existing Normal/Working mode routing.
+        """
+        intent = v2_classify(user_input)
+        t = user_input.lower().strip()
+
+        # ── Check for user name save/recall ──
+        name_match = re.match(r"(?:my name is|i'?m|call me|i am)\s+(.+)", t, re.I)
+        if name_match:
+            name = name_match.group(1).strip().title()
+            self._save_user_name(name)
+            return f"Got it! I'll remember you as {name}. 😊"
+
+        if re.search(r"what'?s? my name|do you know my name|who am i", t, re.I):
+            if self.user_name:
+                return f"Your name is {self.user_name}! 😊"
+            return "I don't know your name yet. Tell me by saying 'my name is ...'"
+
+        # ── Route by v2 intent category ──
+        if intent.category == CHAT:
+            return self._v2_chat(t)
+        elif intent.category == BACKGROUND:
+            return self._v2_background(user_input, intent)
+        elif intent.category == SINGLE:
+            return self._v2_single(user_input, intent)
+        # MULTI → fall through to existing pipeline
+        return None
+
+    def _v2_chat(self, text: str) -> str:
+        """v2 instant chat response — no agents involved."""
+        name = self.user_name or "there"
+
+        if re.search(r"^(hey|hi|hello|sup|yo|good\s)", text, re.I):
+            return random.choice(CHAT_RESPONSES["greetings"]).format(name=name)
+        if re.search(r"^(bye|goodbye|see you|cya)", text, re.I):
+            return random.choice(CHAT_RESPONSES["farewell"]).format(name=name)
+        if re.search(r"^(thanks|thank|ty|thx)", text, re.I):
+            return random.choice(CHAT_RESPONSES["thanks"]).format(name=name)
+        if re.search(r"(what can you do|help|what are you|who are you)", text, re.I):
+            return random.choice(CHAT_RESPONSES["identity"]).format(name=name)
+        if re.search(r"(how are you|how r u|what'?s up)", text, re.I):
+            return random.choice(CHAT_RESPONSES["status"]).format(name=name)
+
+        # Catch-all: try LLM for generic chat
+        try:
+            return self.llm.ask(
+                user=text,
+                system="You are GUNA-ASTRA, a friendly AI assistant. Reply briefly and naturally.",
+                temperature=0.8, max_tokens=200
+            )
+        except Exception:
+            return "I'm here! How can I help?"
+
+    def _v2_single(self, text: str, intent) -> str:
+        """v2 route to a single agent and return result."""
+        agent_name = intent.primary_agent or "SystemAgent"
+        entities = intent.entities or {}
+
+        # Inject media hints for SystemAgent
+        if agent_name == "SystemAgent" and entities.get("query"):
+            hint_text = (f"{text} [EXTRACTED_QUERY: {entities['query']}]"
+                         f" [PLATFORM: {entities.get('platform', 'youtube')}]")
+            result = self.system_agent.execute(hint_text)
+        elif agent_name == "ResearchAgent":
+            result = self.research_agent.execute(text)
+        elif agent_name == "CodingAgent":
+            result = self.coding_agent.execute(text)
+        elif agent_name == "MemoryAgent":
+            result = self.memory_agent.execute(text)
+        else:
+            result = self.system_agent.execute(text)
+
+        # Save to history
+        self.memory.add_history(text, result[:200])
+        return result
+
+    def _v2_background(self, text: str, intent) -> str:
+        """v2 run task in background thread."""
+        def _bg_task():
+            try:
+                return self._v2_single(text, intent)
+            except Exception as e:
+                logger.error(f"Background task failed: {e}")
+                return f"Background task failed: {e}"
+
+        future = self._executor.submit(_bg_task)
+        self.bg_futures.append(future)
+        return f"🔄 Running in background: {text[:60]}..."
+
+
 
     def run(self):
         logger.info("GUNA-ASTRA v2.0 orchestrator is online.")
@@ -130,6 +278,14 @@ class GUNAASTRAOrchestrator:
 
             # Save to conversation context
             self._remember("user", user_input)
+
+            # ── v2 Smart Routing (first pass) ──
+            # Tries CHAT/SINGLE/BACKGROUND instantly. Returns None for MULTI.
+            v2_response = self._v2_route(user_input)
+            if v2_response is not None:
+                print(f"\n\033[92m{v2_response}\033[0m")
+                self._remember("assistant", v2_response)
+                continue
 
             # Classify the intent FIRST (fast, no LLM)
             classification = self.classifier.classify(user_input)

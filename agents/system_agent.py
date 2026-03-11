@@ -2,6 +2,8 @@
 Agent 6: System Agent — Full System Access Edition
 Executes OS-level actions using the system_tools toolkit.
 Supports 40+ capabilities across every major Windows system category.
+
+v2: Enhanced with EXTRACTED_QUERY support for accurate media playback.
 """
 
 import os
@@ -9,6 +11,8 @@ import sys
 import re
 import json
 import subprocess
+import webbrowser
+import urllib.parse
 from agents.base_agent import BaseAgent
 from utils import system_tools as st
 from core.interpreter_engine import InterpreterEngine
@@ -90,6 +94,62 @@ class SystemAgent(BaseAgent):
     def __init__(self):
         super().__init__("SystemAgent", SYSTEM_PROMPT)
         self._engine = InterpreterEngine()
+
+    # ── v2 Interface ──────────────────────────────────────────────────────────
+    def execute(self, task: str) -> str:
+        """v2 orchestrator interface: handles hints like [EXTRACTED_QUERY: ...] [PLATFORM: ...]"""
+        extracted_query = self._extract_hint(task, "EXTRACTED_QUERY")
+        extracted_platform = self._extract_hint(task, "PLATFORM") or "youtube"
+
+        t = task.lower()
+        # v2 media handling with proper URL encoding
+        if extracted_query or any(w in t for w in ["play ", "listen to", "put on"]):
+            return self._v2_play_media(task, extracted_query, extracted_platform)
+
+        # v2 browser handling
+        if any(w in t for w in ["search ", "google "]) and extracted_query:
+            url = f"https://www.google.com/search?q={urllib.parse.quote(extracted_query)}"
+            webbrowser.open(url)
+            return f"🔍 Google search: '{extracted_query}'"
+
+        # Delegate to existing run() for everything else
+        clean_task = self._clean_hint_text(task)
+        result = self.run({"description": clean_task, "original_goal": clean_task})
+        return result.get("output", str(result))
+
+    def _extract_hint(self, text: str, key: str) -> str:
+        """Extract orchestrator-injected hints like [EXTRACTED_QUERY: ...]"""
+        m = re.search(rf"\[{re.escape(key)}:\s*(.+?)\]", text)
+        return m.group(1).strip() if m else ""
+
+    def _clean_hint_text(self, text: str) -> str:
+        """Remove hint brackets from display."""
+        return re.sub(r"\[(?:EXTRACTED_QUERY|PLATFORM):[^\]]+\]", "", text).strip()
+
+    def _v2_play_media(self, task: str, query: str, platform: str) -> str:
+        """v2-style media playback with proper URL encoding."""
+        if not query:
+            # Parse from task text
+            text = self._clean_hint_text(task)
+            text = re.sub(r"\s+(?:on|in|via|using)\s+(?:youtube|spotify|music|soundcloud)\s*$", "", text, flags=re.I)
+            query = re.sub(r"^(?:play|listen to|put on|start playing|can you play|please play)\s+", "", text, flags=re.I)
+            query = query.strip().strip(".,!?\"'")
+
+        if not query:
+            return "I couldn't figure out what to play. Could you say the song name again?"
+
+        if platform == "spotify":
+            url = f"https://open.spotify.com/search/{urllib.parse.quote(query)}"
+            msg = "Spotify"
+        else:
+            url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(query)}"
+            msg = "YouTube"
+
+        try:
+            webbrowser.open(url)
+            return f"🎵 Opened {msg} searching for: '{query}'"
+        except Exception as e:
+            return f"Couldn't open browser: {e}"
 
     def run(self, task: dict) -> dict:
         description = task.get("description", "")

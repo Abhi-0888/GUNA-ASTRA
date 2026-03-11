@@ -46,6 +46,8 @@ SPEAKER_VERIFICATION_THRESHOLD = 0.70
 USER_VOICE_EMBEDDING_PATH = os.path.join(DATA_DIR, "user_embedding.npy")
 # Speech-to-Text (Whisper)
 STT_MODEL_SIZE = "small"
+# v2 Whisper model setting
+WHISPER_MODEL = "base"
 # Text-to-Speech
 TTS_ENGINE = "sapi5"  # native windows TTS for Hindi/English mix initially
 TTS_VOICE_RATE = 150

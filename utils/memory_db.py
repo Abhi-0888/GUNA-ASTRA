@@ -108,3 +108,43 @@ def get_state(key: str):
         doc = _col("state").find_one({"key": key}, {"_id": 0})
         return doc["value"] if doc else None
     return _memory_store["state"].get(key)
+
+
+# ─── v2 MemoryDB Class ──────────────────────────────────────────────────────
+
+class MemoryDB:
+    """v2-style memory wrapper with remember/recall interface.
+    Reuses the existing MongoDB connection and in-memory fallback."""
+
+    def remember(self, key: str, value: dict):
+        """Save a key-value pair to memory."""
+        value["_key"] = key
+        value["_ts"] = __import__("datetime").datetime.now().isoformat()
+        if MONGO_AVAILABLE:
+            try:
+                _col("memory").replace_one({"_key": key}, value, upsert=True)
+                return
+            except Exception:
+                pass
+        _memory_store["state"][key] = value
+
+    def recall(self, key: str):
+        """Recall a previously saved value by key."""
+        if MONGO_AVAILABLE:
+            try:
+                doc = _col("memory").find_one({"_key": key})
+                if doc:
+                    doc.pop("_id", None)
+                    return doc
+            except Exception:
+                pass
+        return _memory_store["state"].get(key)
+
+    def get_history(self, limit: int = 20) -> list:
+        """Get recent task history."""
+        return get_recent_tasks(limit)
+
+    def add_history(self, task: str, response: str):
+        """Add a task to history."""
+        save_task({"goal": task[:200], "response": response[:500], "status": "completed"})
+

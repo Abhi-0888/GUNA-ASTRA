@@ -1,6 +1,7 @@
 """
 Agent 10: Verification Agent
 Validates outputs for correctness, safety, and completeness.
+v2: Short results pass through without LLM verification for speed.
 """
 
 from agents.base_agent import BaseAgent
@@ -29,6 +30,20 @@ If UNSAFE or REJECTED, explain clearly why.
 class VerificationAgent(BaseAgent):
     def __init__(self):
         super().__init__("VerificationAgent", SYSTEM_PROMPT)
+
+    def execute(self, task: str) -> str:
+        """v2 interface: pass through short results, verify long ones."""
+        # For short/simple results, just pass through
+        if len(task) < 300:
+            if "RESULT:" in task:
+                return task.split("RESULT:", 1)[1].strip()
+            return task
+        return self._ask(
+            "You are a quality checker. Given a task and its result, verify the result is "
+            "correct, safe, and addresses the original task. If it's good, return it as-is. "
+            "If not, improve it. Return only the final response, no meta-commentary.",
+            task
+        )
 
     def run(self, task: dict) -> dict:
         goal = task.get("original_goal", "")

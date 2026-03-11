@@ -51,3 +51,45 @@ def check_ollama_health() -> bool:
         return r.status_code == 200
     except Exception:
         return False
+
+
+# ─── v2 LLMClient Class ─────────────────────────────────────────────────────
+
+class LLMClient:
+    """v2-style LLM client with object-oriented interface."""
+
+    def __init__(self, model: str = OLLAMA_MODEL, base_url: str = OLLAMA_BASE_URL):
+        self.model = model
+        self.base_url = base_url.rstrip("/")
+
+    def ask(self, user: str, system: str = "", temperature: float = 0.7,
+            max_tokens: int = 2000) -> str:
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": user})
+
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+            "options": {"temperature": temperature, "num_predict": max_tokens}
+        }
+        try:
+            r = requests.post(f"{self.base_url}/api/chat",
+                              json=payload, timeout=OLLAMA_TIMEOUT)
+            r.raise_for_status()
+            data = r.json()
+            return data["message"]["content"].strip()
+        except requests.exceptions.ConnectionError:
+            raise ConnectionError(
+                "Ollama is not running. Start it with: ollama serve"
+            )
+        except Exception as e:
+            logger.error(f"LLM error: {e}")
+            raise
+
+    def generate(self, prompt: str, **kwargs) -> str:
+        """Simple generate interface."""
+        return self.ask(user=prompt, **kwargs)
+
