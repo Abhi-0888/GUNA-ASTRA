@@ -4,15 +4,17 @@ Master class for ALL direct OS interactions in Normal Mode.
 Platform-aware — wraps system_tools.py with standardized return format.
 """
 
-import os
-import sys
-import shutil
-import platform
-import webbrowser
 import difflib
+import os
+import platform
+import shutil
+import sys
 import time
+import webbrowser
 from datetime import datetime
+
 import pyautogui
+
 try:
     import pygetwindow as gw
 except ImportError:
@@ -32,18 +34,59 @@ IS_LINUX = PLATFORM == "Linux"
 # ── Common Applications List (for fuzzy matching) ──────────────────────────────
 
 COMMON_APPS = [
-    "chrome", "firefox", "safari", "edge", "opera",
-    "notepad", "notepad++", "vs code", "visual studio code", "sublime text", "atom",
-    "spotify", "discord", "slack", "zoom", "teams", "skype",
-    "vlc", "winamp", "itunes",
-    "excel", "word", "powerpoint", "outlook", "onenote",
-    "paint", "photoshop", "illustrator",
-    "calculator", "terminal", "cmd", "powershell",
-    "task manager", "file manager", "explorer", "finder",
-    "steam", "epic games", "origin", "battle.net",
-    "minecraft", "roblox", "blender", "unity", "unreal engine",
-    "obs studio", "audacity", "gimp", "inkscape",
-    "filezilla", "putty", "winscp", "postman",
+    "chrome",
+    "firefox",
+    "safari",
+    "edge",
+    "opera",
+    "notepad",
+    "notepad++",
+    "vs code",
+    "visual studio code",
+    "sublime text",
+    "atom",
+    "spotify",
+    "discord",
+    "slack",
+    "zoom",
+    "teams",
+    "skype",
+    "vlc",
+    "winamp",
+    "itunes",
+    "excel",
+    "word",
+    "powerpoint",
+    "outlook",
+    "onenote",
+    "paint",
+    "photoshop",
+    "illustrator",
+    "calculator",
+    "terminal",
+    "cmd",
+    "powershell",
+    "task manager",
+    "file manager",
+    "explorer",
+    "finder",
+    "steam",
+    "epic games",
+    "origin",
+    "battle.net",
+    "minecraft",
+    "roblox",
+    "blender",
+    "unity",
+    "unreal engine",
+    "obs studio",
+    "audacity",
+    "gimp",
+    "inkscape",
+    "filezilla",
+    "putty",
+    "winscp",
+    "postman",
 ]
 
 # ── Path Safety ────────────────────────────────────────────────────────────────
@@ -60,11 +103,17 @@ def _result(success: bool, output: str, action: str) -> dict:
 
 def _is_safe_path(path: str) -> bool:
     """Check if a path is safe to operate on."""
-    abs_path = os.path.abspath(path).replace("/", "\\") if IS_WINDOWS else os.path.abspath(path)
+    abs_path = (
+        os.path.abspath(path).replace("/", "\\")
+        if IS_WINDOWS
+        else os.path.abspath(path)
+    )
 
-    dangerous = (DANGEROUS_PATHS_WIN if IS_WINDOWS
-                 else DANGEROUS_PATHS_MAC if IS_MAC
-                 else DANGEROUS_PATHS_LINUX)
+    dangerous = (
+        DANGEROUS_PATHS_WIN
+        if IS_WINDOWS
+        else DANGEROUS_PATHS_MAC if IS_MAC else DANGEROUS_PATHS_LINUX
+    )
 
     for dp in dangerous:
         if abs_path.lower().startswith(dp.lower()):
@@ -80,6 +129,7 @@ class ComputerController:
         # Lazy-import system_tools to avoid circular deps
         try:
             from utils import system_tools as st
+
             self._st = st
         except ImportError:
             self._st = None
@@ -98,9 +148,11 @@ class ComputerController:
                 os.startfile(app_name)
             elif IS_MAC:
                 import subprocess
+
                 subprocess.Popen(["open", "-a", app_name])
             else:
                 import subprocess
+
                 subprocess.Popen([app_name])
             return _result(True, f"✅ Launched: {app_name}", "OPEN_APP")
         except Exception as e:
@@ -137,13 +189,14 @@ class ComputerController:
             # A common search-to-watch URL format is not stable, so we open search
             # and then optionally use pyautogui to click the first video if we want to be fancy.
             from urllib.parse import quote_plus
+
             url = f"https://www.youtube.com/results?search_query={quote_plus(query)}"
             webbrowser.open(url)
-            
+
             # Small delay to let browser open, then optional click (experimental)
             # time.sleep(2)
             # pyautogui.click(x=600, y=400) # Highly dependent on resolution
-            
+
             return _result(True, f"🎵 Playing '{query}' on YouTube.", "PLAY_MUSIC")
         except Exception as e:
             return _result(False, f"❌ Failed to play YouTube: {e}", "PLAY_MUSIC")
@@ -158,7 +211,9 @@ class ComputerController:
                 os.makedirs(dir_name, exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
-            return _result(True, f"📄 File created: {os.path.abspath(path)}", "CREATE_FILE")
+            return _result(
+                True, f"📄 File created: {os.path.abspath(path)}", "CREATE_FILE"
+            )
         except Exception as e:
             return _result(False, f"❌ Failed to create file: {e}", "CREATE_FILE")
 
@@ -166,7 +221,9 @@ class ComputerController:
         """Create a directory (and parent directories)."""
         try:
             os.makedirs(path, exist_ok=True)
-            return _result(True, f"📁 Folder created: {os.path.abspath(path)}", "CREATE_FOLDER")
+            return _result(
+                True, f"📁 Folder created: {os.path.abspath(path)}", "CREATE_FOLDER"
+            )
         except Exception as e:
             return _result(False, f"❌ Failed to create folder: {e}", "CREATE_FOLDER")
 
@@ -177,10 +234,16 @@ class ComputerController:
             if not os.path.exists(abs_path):
                 return _result(False, f"❌ File not found: {abs_path}", "DELETE_FILE")
             if not _is_safe_path(abs_path):
-                return _result(False, f"❌ Cannot delete files in protected directory: {abs_path}", "DELETE_FILE")
+                return _result(
+                    False,
+                    f"❌ Cannot delete files in protected directory: {abs_path}",
+                    "DELETE_FILE",
+                )
             size = os.path.getsize(abs_path)
             os.remove(abs_path)
-            return _result(True, f"🗑️ Deleted: {abs_path} ({size:,} bytes)", "DELETE_FILE")
+            return _result(
+                True, f"🗑️ Deleted: {abs_path} ({size:,} bytes)", "DELETE_FILE"
+            )
         except Exception as e:
             return _result(False, f"❌ Failed to delete: {e}", "DELETE_FILE")
 
@@ -189,9 +252,15 @@ class ComputerController:
         try:
             abs_path = os.path.abspath(path)
             if not os.path.isdir(abs_path):
-                return _result(False, f"❌ Folder not found: {abs_path}", "DELETE_FOLDER")
+                return _result(
+                    False, f"❌ Folder not found: {abs_path}", "DELETE_FOLDER"
+                )
             if not _is_safe_path(abs_path):
-                return _result(False, f"❌ Cannot delete protected directory: {abs_path}", "DELETE_FOLDER")
+                return _result(
+                    False,
+                    f"❌ Cannot delete protected directory: {abs_path}",
+                    "DELETE_FOLDER",
+                )
             if recursive:
                 shutil.rmtree(abs_path)
             else:
@@ -225,7 +294,11 @@ class ComputerController:
         try:
             new_path = os.path.join(os.path.dirname(path), new_name)
             os.rename(path, new_path)
-            return _result(True, f"✏️ Renamed: {os.path.basename(path)} → {new_name}", "RENAME_FILE")
+            return _result(
+                True,
+                f"✏️ Renamed: {os.path.basename(path)} → {new_name}",
+                "RENAME_FILE",
+            )
         except Exception as e:
             return _result(False, f"❌ Failed to rename: {e}", "RENAME_FILE")
 
@@ -333,15 +406,16 @@ class ComputerController:
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = name or f"screenshot_{timestamp}.png"
-            
+
             # Ensure data dir exists
             from config.settings import DATA_DIR
+
             ss_dir = os.path.join(DATA_DIR, "screenshots")
             os.makedirs(ss_dir, exist_ok=True)
-            
+
             path = os.path.join(ss_dir, filename)
             pyautogui.screenshot(path)
-            
+
             return _result(True, f"📸 Screenshot captured: {path}", "TAKE_SCREENSHOT")
         except Exception as e:
             return _result(False, f"❌ Screenshot failed: {e}", "TAKE_SCREENSHOT")
@@ -351,7 +425,7 @@ class ComputerController:
         try:
             if not gw:
                 return _result(False, "pygetwindow not installed.", "GET_WINDOW")
-            
+
             window = gw.getActiveWindow()
             if window:
                 return _result(True, f"Active Window: {window.title}", "GET_WINDOW")
@@ -363,6 +437,7 @@ class ComputerController:
         """Extract text from a document for GUNA to read aloud."""
         try:
             from utils.doc_reader import extract_text
+
             text = extract_text(file_path)
             if text:
                 # Limit text for speech to first 2000 chars or so to avoid buffer issues
@@ -383,9 +458,12 @@ class ComputerController:
 
             try:
                 import psutil
+
                 mem = psutil.virtual_memory()
-                info_lines.append(f"  RAM: {mem.total / (1024**3):.1f} GB total, "
-                                  f"{mem.used / (1024**3):.1f} GB used ({mem.percent}%)")
+                info_lines.append(
+                    f"  RAM: {mem.total / (1024**3):.1f} GB total, "
+                    f"{mem.used / (1024**3):.1f} GB used ({mem.percent}%)"
+                )
 
                 cpu_pct = psutil.cpu_percent(interval=0.5)
                 info_lines.append(f"  CPU Usage: {cpu_pct}%")
@@ -430,6 +508,7 @@ class ComputerController:
         try:
             try:
                 import psutil
+
                 batt = psutil.sensors_battery()
                 if batt:
                     status = "🔌 Plugged in" if batt.power_plugged else "🔋 On battery"
@@ -438,12 +517,18 @@ class ComputerController:
                         hrs = batt.secsleft // 3600
                         mins = (batt.secsleft % 3600) // 60
                         time_left = f" — {hrs}h {mins}m remaining"
-                    return _result(True, f"{status}: {batt.percent}%{time_left}", "SHOW_BATTERY")
-                return _result(True, "🔌 No battery detected (desktop PC).", "SHOW_BATTERY")
+                    return _result(
+                        True, f"{status}: {batt.percent}%{time_left}", "SHOW_BATTERY"
+                    )
+                return _result(
+                    True, "🔌 No battery detected (desktop PC).", "SHOW_BATTERY"
+                )
             except ImportError:
                 if self._st:
                     return _result(True, self._st.get_battery_status(), "SHOW_BATTERY")
-                return _result(False, "psutil not installed for battery info.", "SHOW_BATTERY")
+                return _result(
+                    False, "psutil not installed for battery info.", "SHOW_BATTERY"
+                )
         except Exception as e:
             return _result(False, f"❌ Battery check failed: {e}", "SHOW_BATTERY")
 
@@ -454,16 +539,21 @@ class ComputerController:
         try:
             try:
                 import psutil
+
                 procs = []
-                for p in psutil.process_iter(["pid", "name", "cpu_percent", "memory_percent"]):
+                for p in psutil.process_iter(
+                    ["pid", "name", "cpu_percent", "memory_percent"]
+                ):
                     try:
                         info = p.info
                         procs.append(info)
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         pass
                 procs.sort(key=lambda x: x.get("cpu_percent", 0) or 0, reverse=True)
-                lines = ["  PID    | CPU%  | MEM%  | Name",
-                         "  -------|-------|-------|----------------"]
+                lines = [
+                    "  PID    | CPU%  | MEM%  | Name",
+                    "  -------|-------|-------|----------------",
+                ]
                 for p in procs[:20]:
                     lines.append(
                         f"  {p.get('pid', '?'):>6} | {p.get('cpu_percent', 0):>5.1f} | "
@@ -496,7 +586,9 @@ class ComputerController:
             if self._st:
                 found = self._st.search_files(root, query)
                 if found:
-                    output = f"🔍 Found {len(found)} files:\n" + "\n".join(f"  {f}" for f in found[:30])
+                    output = f"🔍 Found {len(found)} files:\n" + "\n".join(
+                        f"  {f}" for f in found[:30]
+                    )
                 else:
                     output = f"🔍 No files matching '{query}' found."
                 return _result(True, output, "SEARCH_FILES")
@@ -520,17 +612,22 @@ class ComputerController:
         """Check if a website is online."""
         try:
             import requests
+
             if not url.startswith(("http://", "https://")):
                 url = "https://" + url
             start = datetime.now()
             r = requests.head(url, timeout=5, allow_redirects=True)
             elapsed = (datetime.now() - start).total_seconds() * 1000
-            return _result(True,
-                           f"🌐 {url} — {'✅ Online' if r.status_code < 400 else '⚠️ Issues'} "
-                           f"(Status: {r.status_code}, Response: {elapsed:.0f}ms)",
-                           "CHECK_WEBSITE")
+            return _result(
+                True,
+                f"🌐 {url} — {'✅ Online' if r.status_code < 400 else '⚠️ Issues'} "
+                f"(Status: {r.status_code}, Response: {elapsed:.0f}ms)",
+                "CHECK_WEBSITE",
+            )
         except Exception as e:
-            return _result(False, f"❌ {url} appears to be offline: {e}", "CHECK_WEBSITE")
+            return _result(
+                False, f"❌ {url} appears to be offline: {e}", "CHECK_WEBSITE"
+            )
 
     # ── Weather ───────────────────────────────────────────────────────────────
 
@@ -540,8 +637,10 @@ class ComputerController:
             if self._st:
                 result = self._st.get_weather(city or "")
                 return _result(True, result, "GET_WEATHER")
-            import requests
             from urllib.parse import quote_plus
+
+            import requests
+
             if not city:
                 try:
                     loc = requests.get("https://ipapi.co/json/", timeout=5).json()
@@ -551,7 +650,11 @@ class ComputerController:
             url = f"https://wttr.in/{quote_plus(city)}?format=%C+%t+%h+%w&lang=en"
             r = requests.get(url, timeout=10, headers={"User-Agent": "curl/7.0"})
             if r.status_code == 200:
-                return _result(True, f"🌤️ Weather{' in ' + city if city else ''}: {r.text.strip()}", "GET_WEATHER")
+                return _result(
+                    True,
+                    f"🌤️ Weather{' in ' + city if city else ''}: {r.text.strip()}",
+                    "GET_WEATHER",
+                )
             return _result(False, "Weather lookup failed.", "GET_WEATHER")
         except Exception as e:
             return _result(False, f"❌ Weather lookup failed: {e}", "GET_WEATHER")
@@ -575,6 +678,7 @@ class ComputerController:
         try:
             if IS_WINDOWS:
                 import ctypes
+
                 ctypes.windll.user32.LockWorkStation()
             elif self._st:
                 self._st.lock_screen()
@@ -622,9 +726,14 @@ class ComputerController:
                 return _result(True, f"📋 Clipboard:\n{content}", "GET_CLIPBOARD")
             try:
                 import pyperclip
-                return _result(True, f"📋 Clipboard:\n{pyperclip.paste()}", "GET_CLIPBOARD")
+
+                return _result(
+                    True, f"📋 Clipboard:\n{pyperclip.paste()}", "GET_CLIPBOARD"
+                )
             except ImportError:
-                return _result(False, "Clipboard access not available.", "GET_CLIPBOARD")
+                return _result(
+                    False, "Clipboard access not available.", "GET_CLIPBOARD"
+                )
         except Exception as e:
             return _result(False, f"❌ {e}", "GET_CLIPBOARD")
 
@@ -636,10 +745,15 @@ class ComputerController:
                 return _result(True, f"📋 {result}", "SET_CLIPBOARD")
             try:
                 import pyperclip
+
                 pyperclip.copy(text)
-                return _result(True, f"📋 Copied to clipboard: {text[:80]}", "SET_CLIPBOARD")
+                return _result(
+                    True, f"📋 Copied to clipboard: {text[:80]}", "SET_CLIPBOARD"
+                )
             except ImportError:
-                return _result(False, "Clipboard access not available.", "SET_CLIPBOARD")
+                return _result(
+                    False, "Clipboard access not available.", "SET_CLIPBOARD"
+                )
         except Exception as e:
             return _result(False, f"❌ {e}", "SET_CLIPBOARD")
 
@@ -653,6 +767,7 @@ class ComputerController:
                 return _result(True, f"⌨️ {result}", "TYPE_TEXT")
             try:
                 import pyautogui
+
                 pyautogui.typewrite(text, interval=0.05)
                 return _result(True, f"⌨️ Typed: {text[:50]}", "TYPE_TEXT")
             except ImportError:
@@ -668,6 +783,7 @@ class ComputerController:
                 return _result(True, f"⌨️ {result}", "PRESS_KEY")
             try:
                 import pyautogui
+
                 parts = [k.strip() for k in key.split("+")]
                 if len(parts) > 1:
                     pyautogui.hotkey(*parts)
@@ -685,6 +801,7 @@ class ComputerController:
         """Create a zip archive."""
         try:
             import zipfile
+
             with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as z:
                 if isinstance(paths, str):
                     paths = [p.strip() for p in paths.split(",")]
@@ -699,9 +816,14 @@ class ComputerController:
         """Extract a zip archive."""
         try:
             import zipfile
+
             with zipfile.ZipFile(path, "r") as z:
                 z.extractall(destination)
-            return _result(True, f"📦 Extracted {path} to {os.path.abspath(destination)}", "UNZIP_FILE")
+            return _result(
+                True,
+                f"📦 Extracted {path} to {os.path.abspath(destination)}",
+                "UNZIP_FILE",
+            )
         except Exception as e:
             return _result(False, f"❌ Unzip failed: {e}", "UNZIP_FILE")
 
@@ -711,9 +833,12 @@ class ComputerController:
         """Download a file from a URL."""
         try:
             import requests
+
             if not destination:
                 filename = url.split("/")[-1].split("?")[0] or "download"
-                destination = os.path.join(os.path.expanduser("~"), "Downloads", filename)
+                destination = os.path.join(
+                    os.path.expanduser("~"), "Downloads", filename
+                )
             os.makedirs(os.path.dirname(os.path.abspath(destination)), exist_ok=True)
 
             r = requests.get(url, stream=True, timeout=120)
@@ -731,7 +856,9 @@ class ComputerController:
                 sz = f"{size / 1024:.1f} KB"
             else:
                 sz = f"{size / (1024 * 1024):.1f} MB"
-            return _result(True, f"⬇️ Downloaded: {destination} ({sz})", "DOWNLOAD_FILE")
+            return _result(
+                True, f"⬇️ Downloaded: {destination} ({sz})", "DOWNLOAD_FILE"
+            )
         except Exception as e:
             return _result(False, f"❌ Download failed: {e}", "DOWNLOAD_FILE")
 
@@ -743,14 +870,19 @@ class ComputerController:
             path = path or os.path.expanduser("~")
             if IS_WINDOWS:
                 import subprocess
+
                 subprocess.Popen(["explorer", path])
             elif IS_MAC:
                 import subprocess
+
                 subprocess.Popen(["open", path])
             else:
                 import subprocess
+
                 subprocess.Popen(["xdg-open", path])
-            return _result(True, f"📂 Opened file manager at: {path}", "OPEN_FILE_MANAGER")
+            return _result(
+                True, f"📂 Opened file manager at: {path}", "OPEN_FILE_MANAGER"
+            )
         except Exception as e:
             return _result(False, f"❌ {e}", "OPEN_FILE_MANAGER")
 
@@ -763,10 +895,16 @@ class ComputerController:
                 content = f.read()
             count = content.count(find)
             if count == 0:
-                return _result(False, f"❌ '{find}' not found in {file_path}", "FIND_REPLACE")
+                return _result(
+                    False, f"❌ '{find}' not found in {file_path}", "FIND_REPLACE"
+                )
             new_content = content.replace(find, replace)
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(new_content)
-            return _result(True, f"✏️ Replaced {count} occurrence(s) in {file_path}", "FIND_REPLACE")
+            return _result(
+                True,
+                f"✏️ Replaced {count} occurrence(s) in {file_path}",
+                "FIND_REPLACE",
+            )
         except Exception as e:
             return _result(False, f"❌ Find/replace failed: {e}", "FIND_REPLACE")

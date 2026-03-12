@@ -16,10 +16,7 @@ MONGO_DB_NAME = "guna_astra"
 # Safety settings
 MAX_TASK_ITERATIONS = 10
 TASK_TIMEOUT_SECONDS = 60
-DANGEROUS_ACTIONS = [
-    "delete_file", "format_drive",
-    "install_software", "shutdown"
-]
+DANGEROUS_ACTIONS = ["delete_file", "format_drive", "install_software", "shutdown"]
 
 # Logging
 LOG_DIR = os.path.join(BASE_DIR, "logs")
@@ -53,25 +50,25 @@ TTS_ENGINE = "sapi5"  # native windows TTS for Hindi/English mix initially
 TTS_VOICE_RATE = 150
 
 # ── Modes ──────────────────────────────────────────────────────────────────────
-MODE_NORMAL = "normal"       # Quick tasks, direct execution
-MODE_WORKING = "working"     # Full multi-agent pipeline
-DEFAULT_MODE = MODE_NORMAL   # System starts in Normal Mode
+MODE_NORMAL = "normal"  # Quick tasks, direct execution
+MODE_WORKING = "working"  # Full multi-agent pipeline
+DEFAULT_MODE = MODE_NORMAL  # System starts in Normal Mode
 AUTO_SWITCH_TO_WORKING = True  # Auto-switch when complex task detected
 
 # Code execution settings (InterpreterEngine)
 CODE_EXECUTION_MAX_RETRIES = 3
-PYTHON_TIMEOUT = 60              # seconds
-SHELL_TIMEOUT = 30               # seconds
-JS_TIMEOUT = 30                  # seconds
-DOWNLOAD_TIMEOUT = 120           # seconds
-STREAM_BUFFER_SIZE = 1024        # bytes for real-time output
+PYTHON_TIMEOUT = 60  # seconds
+SHELL_TIMEOUT = 30  # seconds
+JS_TIMEOUT = 30  # seconds
+DOWNLOAD_TIMEOUT = 120  # seconds
+STREAM_BUFFER_SIZE = 1024  # bytes for real-time output
 
 # Normal mode settings
 NORMAL_MODE_MAX_RESPONSE_MS = 500  # Target response time
 
 # Computer control settings
 SCREENSHOT_DIR = os.path.join(os.path.expanduser("~"), "Desktop")
-VOLUME_DEFAULT_STEP = 10         # % to change volume by default
+VOLUME_DEFAULT_STEP = 10  # % to change volume by default
 
 # Chat personality for direct conversations (no agent pipeline)
 CHAT_SYSTEM_PROMPT = (

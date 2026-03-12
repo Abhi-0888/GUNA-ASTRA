@@ -42,7 +42,7 @@ class VerificationAgent(BaseAgent):
             "You are a quality checker. Given a task and its result, verify the result is "
             "correct, safe, and addresses the original task. If it's good, return it as-is. "
             "If not, improve it. Return only the final response, no meta-commentary.",
-            task
+            task,
         )
 
     def run(self, task: dict) -> dict:

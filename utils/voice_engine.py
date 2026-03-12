@@ -13,27 +13,28 @@ INSTALL:
   pip install openai-whisper sounddevice soundfile pyttsx3 faster-whisper
 """
 
+import io
+import logging
 import os
 import sys
-import io
-import time
-import threading
 import tempfile
-import logging
+import threading
+import time
 
 logger = logging.getLogger("GUNA-ASTRA.Voice")
 
 # ─── Constants ────────────────────────────────────────────────────────────────
-SAMPLE_RATE   = 16000   # Whisper native rate
-CHANNELS      = 1
-SILENCE_LIMIT = 2.0     # seconds of silence = end of speech
-MAX_RECORD    = 30.0    # hard cap
-ENERGY_THRESH = 0.008   # RMS threshold for voice activity detection
+SAMPLE_RATE = 16000  # Whisper native rate
+CHANNELS = 1
+SILENCE_LIMIT = 2.0  # seconds of silence = end of speech
+MAX_RECORD = 30.0  # hard cap
+ENERGY_THRESH = 0.008  # RMS threshold for voice activity detection
 
 
 # ─── Whisper loader ───────────────────────────────────────────────────────────
 _whisper_model = None
-_whisper_lock  = threading.Lock()
+_whisper_lock = threading.Lock()
+
 
 def _load_whisper(model_size: str = "base"):
     global _whisper_model
@@ -42,13 +43,14 @@ def _load_whisper(model_size: str = "base"):
             return _whisper_model
         try:
             from faster_whisper import WhisperModel
+
             logger.info(f"Loading faster-whisper [{model_size}]...")
-            _whisper_model = WhisperModel(model_size, device="cpu",
-                                          compute_type="int8")
+            _whisper_model = WhisperModel(model_size, device="cpu", compute_type="int8")
             logger.info("Whisper loaded ✓")
         except ImportError:
             try:
                 import whisper
+
                 logger.info(f"Loading openai-whisper [{model_size}]...")
                 _whisper_model = whisper.load_model(model_size)
                 logger.info("Whisper loaded ✓")
@@ -64,30 +66,35 @@ def record_until_silence():
     Records audio from microphone until silence is detected.
     Returns raw audio as float32 numpy array at 16kHz.
     """
-    import numpy as np
-    import sounddevice as sd
     import queue as queue_module
 
-    q       = queue_module.Queue()
-    frames  = []
-    silent  = 0.0
+    import numpy as np
+    import sounddevice as sd
+
+    q = queue_module.Queue()
+    frames = []
+    silent = 0.0
     started = False
     start_t = time.time()
 
     def callback(indata, frame_count, time_info, status):
         q.put(indata.copy())
 
-    with sd.InputStream(samplerate=SAMPLE_RATE, channels=CHANNELS,
-                        dtype="float32", callback=callback,
-                        blocksize=int(SAMPLE_RATE * 0.1)):
+    with sd.InputStream(
+        samplerate=SAMPLE_RATE,
+        channels=CHANNELS,
+        dtype="float32",
+        callback=callback,
+        blocksize=int(SAMPLE_RATE * 0.1),
+    ):
         print("\n🎙️  Listening...", end="", flush=True)
         while True:
             chunk = q.get()
-            rms   = float(np.sqrt(np.mean(chunk ** 2)))
+            rms = float(np.sqrt(np.mean(chunk**2)))
 
             if rms > ENERGY_THRESH:
                 started = True
-                silent  = 0.0
+                silent = 0.0
                 frames.append(chunk)
                 print(".", end="", flush=True)
             else:
@@ -114,7 +121,7 @@ def transcribe_audio(audio, model_size: str = "base") -> str:
     """
     import numpy as np
 
-    if len(audio) < SAMPLE_RATE * 0.3:   # less than 300ms → ignore
+    if len(audio) < SAMPLE_RATE * 0.3:  # less than 300ms → ignore
         return ""
 
     model = _load_whisper(model_size)
@@ -122,14 +129,16 @@ def transcribe_audio(audio, model_size: str = "base") -> str:
     # ── faster-whisper ──────────────────────────────
     try:
         from faster_whisper import WhisperModel
+
         if isinstance(model, WhisperModel):
             import soundfile as sf
+
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
                 sf.write(f.name, audio, SAMPLE_RATE)
                 tmp = f.name
-            segments, info = model.transcribe(tmp, beam_size=5,
-                                              language="en",
-                                              vad_filter=True)
+            segments, info = model.transcribe(
+                tmp, beam_size=5, language="en", vad_filter=True
+            )
             text = " ".join(s.text for s in segments).strip()
             os.unlink(tmp)
             return _clean_transcript(text)
@@ -139,9 +148,9 @@ def transcribe_audio(audio, model_size: str = "base") -> str:
     # ── openai-whisper ──────────────────────────────
     try:
         import whisper
+
         if hasattr(model, "transcribe"):
-            result = model.transcribe(audio, language="en", fp16=False,
-                                      temperature=0)
+            result = model.transcribe(audio, language="en", fp16=False, temperature=0)
             return _clean_transcript(result["text"])
     except Exception:
         pass
@@ -152,9 +161,12 @@ def transcribe_audio(audio, model_size: str = "base") -> str:
 
 def _google_fallback(audio) -> str:
     try:
+        import io
+        import wave
+
         import numpy as np
         import speech_recognition as sr
-        import io, wave
+
         r = sr.Recognizer()
         audio_int16 = (audio * 32767).astype(np.int16)
         buf = io.BytesIO()
@@ -180,7 +192,9 @@ def _clean_transcript(text: str) -> str:
         "please subscribe",
         "like and subscribe",
         "subtitles by",
-        "[music]", "[applause]", "[laughing]",
+        "[music]",
+        "[applause]",
+        "[laughing]",
     ]
     t = text.strip()
     for h in hallucinations:
@@ -211,10 +225,12 @@ def listen(model_size: str = "base", timeout: float = 10.0) -> str:
 # ─── TTS ──────────────────────────────────────────────────────────────────────
 _tts_engine = None
 
+
 def _get_tts():
     global _tts_engine
     if _tts_engine is None:
         import pyttsx3
+
         _tts_engine = pyttsx3.init()
         # Tune: rate 175 (natural), volume 0.95
         _tts_engine.setProperty("rate", 175)
@@ -230,6 +246,7 @@ def _get_tts():
 
 def speak(text: str, async_mode: bool = False):
     """Convert text to speech. async_mode=True returns immediately."""
+
     def _do_speak():
         try:
             engine = _get_tts()

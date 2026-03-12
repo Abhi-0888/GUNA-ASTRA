@@ -6,11 +6,15 @@ Writes to console and to /logs directory.
 import logging
 import os
 from datetime import datetime
+
 from config.settings import LOG_DIR, LOG_LEVEL
+
 
 def setup_logger(name: str) -> logging.Logger:
     os.makedirs(LOG_DIR, exist_ok=True)
-    log_file = os.path.join(LOG_DIR, f"guna_astra_{datetime.now().strftime('%Y%m%d')}.log")
+    log_file = os.path.join(
+        LOG_DIR, f"guna_astra_{datetime.now().strftime('%Y%m%d')}.log"
+    )
 
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
@@ -34,11 +38,11 @@ def setup_logger(name: str) -> logging.Logger:
 
 class AgentFormatter(logging.Formatter):
     COLORS = {
-        "DEBUG":    "\033[94m",   # Blue
-        "INFO":     "\033[92m",   # Green
-        "WARNING":  "\033[93m",   # Yellow
-        "ERROR":    "\033[91m",   # Red
-        "CRITICAL": "\033[95m",   # Magenta
+        "DEBUG": "\033[94m",  # Blue
+        "INFO": "\033[92m",  # Green
+        "WARNING": "\033[93m",  # Yellow
+        "ERROR": "\033[91m",  # Red
+        "CRITICAL": "\033[95m",  # Magenta
     }
     RESET = "\033[0m"
 

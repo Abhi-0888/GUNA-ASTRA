@@ -4,7 +4,8 @@ Only the Memory Agent should call this directly.
 """
 
 from datetime import datetime
-from config.settings import MONGO_URI, MONGO_DB_NAME
+
+from config.settings import MONGO_DB_NAME, MONGO_URI
 from utils.logger import get_logger
 
 logger = get_logger("MongoDB")
@@ -12,6 +13,7 @@ logger = get_logger("MongoDB")
 try:
     from pymongo import MongoClient
     from pymongo.errors import ConnectionFailure
+
     _client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
     _client.admin.command("ping")
     _db = _client[MONGO_DB_NAME]
@@ -23,12 +25,7 @@ except Exception as e:
     logger.warning(f"MongoDB unavailable — using in-memory fallback. ({e})")
 
 # In-memory fallback store
-_memory_store = {
-    "tasks": [],
-    "logs": [],
-    "conversations": [],
-    "state": {}
-}
+_memory_store = {"tasks": [], "logs": [], "conversations": [], "state": {}}
 
 
 def _col(name):
@@ -38,6 +35,7 @@ def _col(name):
 
 
 # ─── Task History ───────────────────────────────────────────────────────────
+
 
 def save_task(task: dict):
     task["timestamp"] = datetime.utcnow().isoformat()
@@ -49,18 +47,21 @@ def save_task(task: dict):
 
 def get_recent_tasks(limit: int = 10) -> list:
     if MONGO_AVAILABLE:
-        return list(_col("tasks").find({}, {"_id": 0}).sort("timestamp", -1).limit(limit))
+        return list(
+            _col("tasks").find({}, {"_id": 0}).sort("timestamp", -1).limit(limit)
+        )
     return _memory_store["tasks"][-limit:]
 
 
 # ─── Agent Logs ─────────────────────────────────────────────────────────────
+
 
 def save_log(agent: str, message: str, level: str = "INFO"):
     entry = {
         "agent": agent,
         "message": message,
         "level": level,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
     }
     if MONGO_AVAILABLE:
         _col("logs").insert_one(entry)
@@ -70,12 +71,13 @@ def save_log(agent: str, message: str, level: str = "INFO"):
 
 # ─── Conversation Memory ─────────────────────────────────────────────────────
 
+
 def save_conversation(role: str, content: str, session_id: str = "default"):
     entry = {
         "session_id": session_id,
         "role": role,
         "content": content,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
     }
     if MONGO_AVAILABLE:
         _col("conversations").insert_one(entry)
@@ -91,10 +93,13 @@ def get_conversation_history(session_id: str = "default", limit: int = 20) -> li
             .sort("timestamp", 1)
             .limit(limit)
         )
-    return [m for m in _memory_store["conversations"] if m.get("session_id") == session_id][-limit:]
+    return [
+        m for m in _memory_store["conversations"] if m.get("session_id") == session_id
+    ][-limit:]
 
 
 # ─── System State ────────────────────────────────────────────────────────────
+
 
 def set_state(key: str, value):
     if MONGO_AVAILABLE:
@@ -111,6 +116,7 @@ def get_state(key: str):
 
 
 # ─── v2 MemoryDB Class ──────────────────────────────────────────────────────
+
 
 class MemoryDB:
     """v2-style memory wrapper with remember/recall interface.
@@ -146,5 +152,6 @@ class MemoryDB:
 
     def add_history(self, task: str, response: str):
         """Add a task to history."""
-        save_task({"goal": task[:200], "response": response[:500], "status": "completed"})
-
+        save_task(
+            {"goal": task[:200], "response": response[:500], "status": "completed"}
+        )

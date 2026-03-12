@@ -7,8 +7,9 @@ import os
 import sys
 import threading
 import webbrowser
-from utils.logger import get_logger
+
 from config.settings import API_PORT
+from utils.logger import get_logger
 
 logger = get_logger("Tray")
 
@@ -51,7 +52,7 @@ def create_tray_icon(orchestrator=None, on_quit=None):
         icon.notify(
             f"Mode: {mode.upper()}\n"
             f"Conversation: {len(orchestrator._conversation) if orchestrator else 0} msgs",
-            "GUNA-ASTRA Status"
+            "GUNA-ASTRA Status",
         )
 
     def _switch_normal(icon, item):
@@ -84,7 +85,7 @@ def create_tray_icon(orchestrator=None, on_quit=None):
         name="GUNA-ASTRA",
         icon=_create_icon_image(),
         title="GUNA-ASTRA — AI Assistant (Running)",
-        menu=menu
+        menu=menu,
     )
 
     logger.info("System tray icon active.")
@@ -94,9 +95,7 @@ def create_tray_icon(orchestrator=None, on_quit=None):
 def run_tray_in_background(orchestrator=None, on_quit=None):
     """Start the tray icon in a background thread."""
     thread = threading.Thread(
-        target=create_tray_icon,
-        args=(orchestrator, on_quit),
-        daemon=True
+        target=create_tray_icon, args=(orchestrator, on_quit), daemon=True
     )
     thread.start()
     return thread

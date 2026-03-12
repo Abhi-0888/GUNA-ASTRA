@@ -10,18 +10,19 @@ logger = get_logger("TaskDispatcher")
 
 # Map agent names to their module paths (loaded lazily to avoid circular imports)
 AGENT_REGISTRY = {
-    "ResearchAgent":  "agents.research_agent.ResearchAgent",
-    "CodingAgent":    "agents.coding_agent.CodingAgent",
-    "SystemAgent":    "agents.system_agent.SystemAgent",
-    "DataAgent":      "agents.data_agent.DataAgent",
-    "CyberAgent":     "agents.cyber_agent.CyberAgent",
-    "MemoryAgent":    "agents.memory_agent.MemoryAgent",
+    "ResearchAgent": "agents.research_agent.ResearchAgent",
+    "CodingAgent": "agents.coding_agent.CodingAgent",
+    "SystemAgent": "agents.system_agent.SystemAgent",
+    "DataAgent": "agents.data_agent.DataAgent",
+    "CyberAgent": "agents.cyber_agent.CyberAgent",
+    "MemoryAgent": "agents.memory_agent.MemoryAgent",
 }
 
 
 def _load_agent(agent_name: str):
     """Dynamically load an agent class by name."""
     import importlib
+
     path = AGENT_REGISTRY.get(agent_name)
     if not path:
         raise ValueError(f"Unknown agent: {agent_name}")
@@ -44,7 +45,11 @@ class TaskDispatcher(BaseAgent):
 
         if not agent_name:
             logger.error(f"Task has no assigned agent: {task}")
-            return {"agent": "TaskDispatcher", "status": "failed", "output": "No agent assigned."}
+            return {
+                "agent": "TaskDispatcher",
+                "status": "failed",
+                "output": "No agent assigned.",
+            }
 
         logger.info(f"Dispatching task to {agent_name}: {description[:80]}")
 
@@ -57,5 +62,5 @@ class TaskDispatcher(BaseAgent):
                 "agent": agent_name,
                 "task": description,
                 "status": "failed",
-                "output": str(e)
+                "output": str(e),
             }

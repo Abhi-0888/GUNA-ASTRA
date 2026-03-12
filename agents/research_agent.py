@@ -4,6 +4,7 @@ Performs research using DuckDuckGo (no API key needed) and summarizes findings.
 """
 
 import requests
+
 from agents.base_agent import BaseAgent
 
 SYSTEM_PROMPT = """You are the Research Agent for GUNA-ASTRA.
@@ -54,21 +55,19 @@ Include key facts, explanations, and relevant details."""
         # v2: Try duckduckgo_search library (more comprehensive results)
         try:
             from duckduckgo_search import DDGS
+
             with DDGS() as ddgs:
                 results = list(ddgs.text(query, max_results=5))
             if results:
-                return "\n".join(f"• {r['title']}: {r['body'][:200]}" for r in results[:3])
+                return "\n".join(
+                    f"• {r['title']}: {r['body'][:200]}" for r in results[:3]
+                )
         except Exception:
             pass
 
         # Fallback: DuckDuckGo Instant Answer API
         try:
-            params = {
-                "q": query,
-                "format": "json",
-                "no_redirect": "1",
-                "no_html": "1"
-            }
+            params = {"q": query, "format": "json", "no_redirect": "1", "no_html": "1"}
             r = requests.get(DDGO_URL, params=params, timeout=10)
             data = r.json()
 
@@ -88,6 +87,7 @@ Include key facts, explanations, and relevant details."""
         """Search Wikipedia REST API for topic summaries."""
         try:
             from urllib.parse import quote
+
             url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{quote(topic)}"
             r = requests.get(url, timeout=10)
             if r.status_code == 200:
@@ -107,17 +107,26 @@ Include key facts, explanations, and relevant details."""
             return ""
         try:
             import re as _re
-            city = _re.sub(r'(weather|temperature|forecast|climate|in|the|what|is|of)\s*', '', topic, flags=_re.IGNORECASE).strip()
+
+            city = _re.sub(
+                r"(weather|temperature|forecast|climate|in|the|what|is|of)\s*",
+                "",
+                topic,
+                flags=_re.IGNORECASE,
+            ).strip()
             from urllib.parse import quote_plus
+
             url = f"https://wttr.in/{quote_plus(city)}?format=j1"
             r = requests.get(url, timeout=10, headers={"User-Agent": "curl/7.0"})
             if r.status_code == 200:
                 data = r.json()
                 current = data.get("current_condition", [{}])[0]
-                return (f"Weather: {current.get('weatherDesc', [{}])[0].get('value', '?')}, "
-                        f"Temp: {current.get('temp_C', '?')}°C, "
-                        f"Humidity: {current.get('humidity', '?')}%, "
-                        f"Wind: {current.get('windspeedKmph', '?')} km/h")
+                return (
+                    f"Weather: {current.get('weatherDesc', [{}])[0].get('value', '?')}, "
+                    f"Temp: {current.get('temp_C', '?')}°C, "
+                    f"Humidity: {current.get('humidity', '?')}%, "
+                    f"Wind: {current.get('windspeedKmph', '?')} km/h"
+                )
             return ""
         except Exception:
             return ""
@@ -158,4 +167,3 @@ Provide a {'brief' if depth == 'quick' else 'comprehensive'} research summary.""
 No live search results available. Provide the best knowledge-based summary."""
 
         return self.think(prompt)
-

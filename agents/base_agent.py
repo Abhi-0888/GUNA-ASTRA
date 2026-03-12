@@ -7,9 +7,9 @@ Supports two calling patterns:
   - v2: agent.execute(task_str) → returns string result directly
 """
 
+from config.settings import AGENT_MAX_RETRIES
 from utils.llm_client import query_llm
 from utils.logger import get_logger
-from config.settings import AGENT_MAX_RETRIES
 
 
 class BaseAgent:
@@ -58,6 +58,6 @@ class BaseAgent:
         return {
             "agent": self.name,
             "task": task.get("description", ""),
-            "status": status,   # "success" | "failed" | "pending_confirmation"
-            "output": output
+            "status": status,  # "success" | "failed" | "pending_confirmation"
+            "output": output,
         }

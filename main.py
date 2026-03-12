@@ -4,8 +4,8 @@ Main entry point — CLI interactive mode and background service mode.
 Includes startup health checks and auto-installation of missing packages.
 """
 
-import sys
 import os
+import sys
 
 # Ensure project root is in path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -50,18 +50,26 @@ def install_missing_packages():
             missing_optional.append(pkg)
 
     if missing_required:
-        print(f"\033[93m[Setup] Installing missing required packages: {', '.join(missing_required)}\033[0m")
+        print(
+            f"\033[93m[Setup] Installing missing required packages: {', '.join(missing_required)}\033[0m"
+        )
         import subprocess
+
         for pkg in missing_required:
             subprocess.check_call([sys.executable, "-m", "pip", "install", pkg, "-q"])
         print(f"\033[92m[Setup] ✅ Required packages installed.\033[0m")
 
     if missing_optional:
-        print(f"\033[90m[Setup] Optional packages not installed: {', '.join(missing_optional)}\033[0m")
-        print(f"\033[90m        Install with: pip install {' '.join(missing_optional)}\033[0m")
+        print(
+            f"\033[90m[Setup] Optional packages not installed: {', '.join(missing_optional)}\033[0m"
+        )
+        print(
+            f"\033[90m        Install with: pip install {' '.join(missing_optional)}\033[0m"
+        )
 
 
 # ── Health Check ───────────────────────────────────────────────────────────────
+
 
 def run_health_check():
     """Run system health check at startup."""
@@ -83,7 +91,9 @@ def run_health_check():
         checks.append("  ⚠️  MongoDB — Offline (using in-memory fallback)")
 
     # Python version
-    py_ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    py_ver = (
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
     checks.append(f"  ✅ Python {py_ver}")
 
     # Optional packages
@@ -95,7 +105,10 @@ def run_health_check():
             checks.append(f"  ⚠️  {pkg} — Not installed")
 
     # Whisper (v2 voice)
-    for wh_name, wh_label in [("faster_whisper", "faster-whisper"), ("whisper", "openai-whisper")]:
+    for wh_name, wh_label in [
+        ("faster_whisper", "faster-whisper"),
+        ("whisper", "openai-whisper"),
+    ]:
         try:
             __import__(wh_name)
             checks.append(f"  \u2705 {wh_label} \u2014 Available")
@@ -103,7 +116,9 @@ def run_health_check():
         except ImportError:
             pass
     else:
-        checks.append("  \u26a0\ufe0f  Whisper \u2014 Not installed (voice uses Google fallback)")
+        checks.append(
+            "  \u26a0\ufe0f  Whisper \u2014 Not installed (voice uses Google fallback)"
+        )
 
     print("\n\033[96m[Health Check]\033[0m")
     for c in checks:
@@ -113,21 +128,35 @@ def run_health_check():
 
 # ── Main CLI Entry ─────────────────────────────────────────────────────────────
 
+
 def main_cli():
     """Interactive CLI mode."""
     import argparse
-    from utils.banner import print_banner
+
     from core.orchestrator import GUNAASTRAOrchestrator
-    
+    from utils.banner import print_banner
+
     parser = argparse.ArgumentParser(description="GUNA-ASTRA AI Assistant v2.0")
-    parser.add_argument("--voice", action="store_true", help="Start the background Voice Listener on boot")
-    parser.add_argument("--model", type=str, default="base", help="Whisper model size (tiny/base/small/medium/large)")
-    parser.add_argument("--no-tts", action="store_true", help="Disable text-to-speech output")
+    parser.add_argument(
+        "--voice",
+        action="store_true",
+        help="Start the background Voice Listener on boot",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="base",
+        help="Whisper model size (tiny/base/small/medium/large)",
+    )
+    parser.add_argument(
+        "--no-tts", action="store_true", help="Disable text-to-speech output"
+    )
     parser.add_argument("--llm", type=str, default=None, help="Override LLM model name")
     args = parser.parse_args()
 
     # Apply v2 settings
     import config.settings
+
     if args.model:
         config.settings.WHISPER_MODEL = args.model
     if args.no_tts:
@@ -142,23 +171,27 @@ def main_cli():
 
     # Run orchestrator
     orchestrator = GUNAASTRAOrchestrator()
-    
+
     if args.voice:
         config.settings.VOICE_MODE_ENABLED = True
         orchestrator.start_voice_service()
-        
+
     orchestrator.run()
 
 
 # ── Background Service Mode ───────────────────────────────────────────────────
 
+
 def main_service():
     """Run as FastAPI background service."""
     try:
         from api.server import start_api_server
+
         start_api_server()
     except ImportError:
-        print("\033[91m[Error] API server module not found. Run in CLI mode instead.\033[0m")
+        print(
+            "\033[91m[Error] API server module not found. Run in CLI mode instead.\033[0m"
+        )
         print("\033[90m  python main.py\033[0m")
         sys.exit(1)
 

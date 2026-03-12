@@ -1,9 +1,12 @@
 import os
-import pdfplumber
+
 import docx
+import pdfplumber
+
 from utils.logger import get_logger
 
 logger = get_logger("DocReader")
+
 
 def extract_text(file_path):
     """
@@ -14,7 +17,7 @@ def extract_text(file_path):
         return None
 
     ext = os.path.splitext(file_path)[1].lower()
-    
+
     try:
         if ext == ".pdf":
             return _extract_from_pdf(file_path)
@@ -29,6 +32,7 @@ def extract_text(file_path):
         logger.error(f"Error reading {file_path}: {e}")
         return None
 
+
 def _extract_from_pdf(file_path):
     text = ""
     with pdfplumber.open(file_path) as pdf:
@@ -38,9 +42,11 @@ def _extract_from_pdf(file_path):
                 text += page_text + "\n"
     return text.strip()
 
+
 def _extract_from_docx(file_path):
     doc = docx.Document(file_path)
     return "\n".join([para.text for para in doc.paragraphs]).strip()
+
 
 def _extract_from_txt(file_path):
     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:

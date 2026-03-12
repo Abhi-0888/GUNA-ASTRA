@@ -18,46 +18,51 @@ Enhanced with InterpreterEngine for autonomous code execution.
 
 import json
 import os
+import random
 import re
 import time
-import random
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from utils.logger import get_logger
-from utils.llm_client import check_ollama_health, LLMClient
-from utils.memory_db import save_task, save_conversation, get_conversation_history, MemoryDB
-from config.settings import (
-    MAX_TASK_ITERATIONS, TASK_TIMEOUT_SECONDS,
-    DIRECT_EXECUTION_ENABLED, CONVERSATION_HISTORY_SIZE, SPEAK_RESPONSES,
-    MODE_NORMAL, MODE_WORKING, DEFAULT_MODE, AUTO_SWITCH_TO_WORKING,
-    CHAT_SYSTEM_PROMPT
-)
 
+from agents.coding_agent import CodingAgent
+from agents.memory_agent import MemoryAgent
 from agents.planner_agent import PlannerAgent
+from agents.research_agent import ResearchAgent
+from agents.result_synthesizer import ResultSynthesizer
+from agents.system_agent import SystemAgent
 from agents.task_dispatcher import TaskDispatcher
 from agents.testing_agent import TestingAgent
 from agents.verification_agent import VerificationAgent
-from agents.result_synthesizer import ResultSynthesizer
-from agents.system_agent import SystemAgent
-from agents.research_agent import ResearchAgent
-from agents.coding_agent import CodingAgent
-from agents.memory_agent import MemoryAgent
-
-from core.intent_classifier import IntentClassifier, COMPLEX_TASK, UNKNOWN, CHANGE_MODE, CONVERSATION
-from core.intent_classifier import (
-    SHOW_HELP, SHOW_HISTORY, SHOW_STATUS, OPEN_APP, OPEN_URL, PLAY_MUSIC,
-    PLAY_VIDEO, CREATE_FILE, CREATE_FOLDER, DELETE_FILE, DELETE_FOLDER,
-    MOVE_FILE, COPY_FILE, RENAME_FILE, LIST_DIR, SHOW_TIME, SET_VOLUME,
-    VOLUME_UP, VOLUME_DOWN, MUTE_VOLUME, TAKE_SCREENSHOT, SHOW_SYSTEM_INFO,
-    SHOW_BATTERY, LIST_PROCESSES, KILL_PROCESS, SEARCH_FILES, SHOW_NETWORK,
-    CHECK_WEBSITE, GET_WEATHER, EMPTY_TRASH, LOCK_SCREEN, SHUTDOWN,
-    RESTART, SLEEP, GET_CLIPBOARD, SET_CLIPBOARD, TYPE_TEXT, PRESS_KEY,
-    RUN_COMMAND, ZIP_FILES, UNZIP_FILE, DOWNLOAD_FILE, OPEN_FILE_MANAGER,
-    FIND_REPLACE, STOP, READ_DOC, GET_WINDOW
-)
+from config.settings import (AUTO_SWITCH_TO_WORKING, CHAT_SYSTEM_PROMPT,
+                             CONVERSATION_HISTORY_SIZE, DEFAULT_MODE,
+                             DIRECT_EXECUTION_ENABLED, MAX_TASK_ITERATIONS,
+                             MODE_NORMAL, MODE_WORKING, SPEAK_RESPONSES,
+                             TASK_TIMEOUT_SECONDS)
 from core.computer_controller import ComputerController
+from core.intent_classifier import (CHANGE_MODE, CHECK_WEBSITE, COMPLEX_TASK,
+                                    CONVERSATION, COPY_FILE, CREATE_FILE,
+                                    CREATE_FOLDER, DELETE_FILE, DELETE_FOLDER,
+                                    DOWNLOAD_FILE, EMPTY_TRASH, FIND_REPLACE,
+                                    GET_CLIPBOARD, GET_WEATHER, GET_WINDOW,
+                                    KILL_PROCESS, LIST_DIR, LIST_PROCESSES,
+                                    LOCK_SCREEN, MOVE_FILE, MUTE_VOLUME,
+                                    OPEN_APP, OPEN_FILE_MANAGER, OPEN_URL,
+                                    PLAY_MUSIC, PLAY_VIDEO, PRESS_KEY,
+                                    READ_DOC, RENAME_FILE, RESTART,
+                                    RUN_COMMAND, SEARCH_FILES, SET_CLIPBOARD,
+                                    SET_VOLUME, SHOW_BATTERY, SHOW_HELP,
+                                    SHOW_HISTORY, SHOW_NETWORK, SHOW_STATUS,
+                                    SHOW_SYSTEM_INFO, SHOW_TIME, SHUTDOWN,
+                                    SLEEP, STOP, TAKE_SCREENSHOT, TYPE_TEXT,
+                                    UNKNOWN, UNZIP_FILE, VOLUME_DOWN,
+                                    VOLUME_UP, ZIP_FILES, IntentClassifier)
+from core.intent_engine import BACKGROUND, CHAT, MULTI, SINGLE
+from core.intent_engine import classify as v2_classify
 from core.interpreter_engine import InterpreterEngine
-from core.intent_engine import classify as v2_classify, CHAT, SINGLE, MULTI, BACKGROUND
+from utils.llm_client import LLMClient, check_ollama_health
+from utils.logger import get_logger
+from utils.memory_db import (MemoryDB, get_conversation_history,
+                             save_conversation, save_task)
 
 logger = get_logger("GUNA-ASTRA")
 
@@ -120,7 +125,7 @@ class GUNAASTRAOrchestrator:
         """Shorten path for display: ~/Desktop instead of full path."""
         home = os.path.expanduser("~")
         if path.startswith(home):
-            return "~" + path[len(home):]
+            return "~" + path[len(home) :]
         return path
 
     # ─── v2 User Name Memory ─────────────────────────────────────────────
@@ -192,7 +197,8 @@ class GUNAASTRAOrchestrator:
             return self.llm.ask(
                 user=text,
                 system="You are GUNA-ASTRA, a friendly AI assistant. Reply briefly and naturally.",
-                temperature=0.8, max_tokens=200
+                temperature=0.8,
+                max_tokens=200,
             )
         except Exception:
             return "I'm here! How can I help?"
@@ -204,8 +210,10 @@ class GUNAASTRAOrchestrator:
 
         # Inject media hints for SystemAgent
         if agent_name == "SystemAgent" and entities.get("query"):
-            hint_text = (f"{text} [EXTRACTED_QUERY: {entities['query']}]"
-                         f" [PLATFORM: {entities.get('platform', 'youtube')}]")
+            hint_text = (
+                f"{text} [EXTRACTED_QUERY: {entities['query']}]"
+                f" [PLATFORM: {entities.get('platform', 'youtube')}]"
+            )
             result = self.system_agent.execute(hint_text)
         elif agent_name == "ResearchAgent":
             result = self.research_agent.execute(text)
@@ -222,6 +230,7 @@ class GUNAASTRAOrchestrator:
 
     def _v2_background(self, text: str, intent) -> str:
         """v2 run task in background thread."""
+
         def _bg_task():
             try:
                 return self._v2_single(text, intent)
@@ -233,14 +242,16 @@ class GUNAASTRAOrchestrator:
         self.bg_futures.append(future)
         return f"🔄 Running in background: {text[:60]}..."
 
-
-
     def run(self):
         logger.info("GUNA-ASTRA v2.0 orchestrator is online.")
 
         if not check_ollama_health():
-            print("\033[91m[WARNING] Ollama is not running. Start it with: ollama serve\033[0m")
-            print("\033[93mYou can still use Normal Mode — direct commands work without LLM!\033[0m\n")
+            print(
+                "\033[91m[WARNING] Ollama is not running. Start it with: ollama serve\033[0m"
+            )
+            print(
+                "\033[93mYou can still use Normal Mode — direct commands work without LLM!\033[0m\n"
+            )
 
         self._print_mode()
 
@@ -264,6 +275,7 @@ class GUNAASTRAOrchestrator:
             if user_input.lower() == "clear":
                 os.system("cls" if os.name == "nt" else "clear")
                 from utils.banner import print_banner
+
                 print_banner()
                 self._print_mode()
                 continue
@@ -311,6 +323,7 @@ class GUNAASTRAOrchestrator:
             if intent == "CLEAR_SCREEN":
                 os.system("cls" if os.name == "nt" else "clear")
                 from utils.banner import print_banner
+
                 print_banner()
                 self._print_mode()
                 continue
@@ -321,12 +334,18 @@ class GUNAASTRAOrchestrator:
                     self._handle_conversation(user_input)
                 elif intent == COMPLEX_TASK:
                     if AUTO_SWITCH_TO_WORKING:
-                        print(f"\n\033[93m[GUNA-ASTRA] 💡 This looks like a complex task.\033[0m")
-                        print(f"\033[93m[GUNA-ASTRA] Switching to WORKING MODE for this request...\033[0m")
+                        print(
+                            f"\n\033[93m[GUNA-ASTRA] 💡 This looks like a complex task.\033[0m"
+                        )
+                        print(
+                            f"\033[93m[GUNA-ASTRA] Switching to WORKING MODE for this request...\033[0m"
+                        )
                         self._process_goal_working_mode(user_input)
                     else:
-                        print(f"\n\033[93m[GUNA-ASTRA] 💡 This looks complex. "
-                              f"Say 'mode working' to switch.\033[0m")
+                        print(
+                            f"\n\033[93m[GUNA-ASTRA] 💡 This looks complex. "
+                            f"Say 'mode working' to switch.\033[0m"
+                        )
                         self._execute_simple_pipeline(user_input)
                 elif intent == UNKNOWN:
                     # Unknown with action keywords — try direct system execution
@@ -363,37 +382,46 @@ class GUNAASTRAOrchestrator:
                 return self._execute_direct_api(text)
             else:
                 result = self._execute_normal_mode(intent, params, text)
-                return {"status": "success" if result.get("success") else "failed",
-                        "output": result.get("output", ""), "agent": "ComputerController"}
+                return {
+                    "status": "success" if result.get("success") else "failed",
+                    "output": result.get("output", ""),
+                    "agent": "ComputerController",
+                }
         else:
             return self._process_goal_full_pipeline_api(text)
 
     def process_voice_command(self, text: str) -> str:
         """Used specifically by the VoiceManager to inject speech text and return a synthesized string response."""
         result_dict = self.process_command(text)
-        
+
         # Simple extraction of standard output for TTS reading
-        if result_dict.get('output'):
-            return str(result_dict['output'])
-        elif result_dict.get('result'):
-            return str(result_dict['result'])
+        if result_dict.get("output"):
+            return str(result_dict["output"])
+        elif result_dict.get("result"):
+            return str(result_dict["result"])
         return "I have completed the task."
 
     def start_voice_service(self):
         """Starts the continuous acoustic VoiceManager in a background thread."""
         from config.settings import VOICE_MODE_ENABLED
+
         if not VOICE_MODE_ENABLED:
-            logger.warning("Voice mode requested but VOICE_MODE_ENABLED=False in settings.py")
+            logger.warning(
+                "Voice mode requested but VOICE_MODE_ENABLED=False in settings.py"
+            )
             return
-            
+
         try:
-            from core.voice.voice_manager import VoiceManager
             import threading
-            
+
+            from core.voice.voice_manager import VoiceManager
+
             self.voice_manager = VoiceManager(self)
-            
+
             # Start the heavy voice loop in a daemon thread so it exits when CLI exits
-            voice_thread = threading.Thread(target=self.voice_manager.start_listening, daemon=True)
+            voice_thread = threading.Thread(
+                target=self.voice_manager.start_listening, daemon=True
+            )
             voice_thread.start()
             logger.info("Voice Service started in background thread.")
         except Exception as e:
@@ -406,7 +434,11 @@ class GUNAASTRAOrchestrator:
         cc = self.computer
 
         if intent == OPEN_APP:
-            return cc.open_application(params.get("app_name", raw_input.replace("open ", "").replace("launch ", "")))
+            return cc.open_application(
+                params.get(
+                    "app_name", raw_input.replace("open ", "").replace("launch ", "")
+                )
+            )
 
         elif intent == OPEN_URL:
             url = params.get("url", "")
@@ -545,14 +577,14 @@ class GUNAASTRAOrchestrator:
             return cc.find_replace_in_file(
                 params.get("file_path", ""),
                 params.get("find", ""),
-                params.get("replace", "")
+                params.get("replace", ""),
             )
 
         elif intent == READ_DOC:
             path = params.get("path", "")
             if path == "last_opened":
                 path = self._last_doc_path
-            
+
             if not path or not os.path.exists(path):
                 # Try to find a file if only a name was given
                 search_res = cc.search_files(path)
@@ -560,11 +592,15 @@ class GUNAASTRAOrchestrator:
                     # Heuristic: pick the first one
                     found_path = search_res["output"].split("\n")[1].strip()
                     path = found_path
-            
+
             if path:
                 self._last_doc_path = path
                 return cc.read_document(path)
-            return {"success": False, "output": "I couldn't find the document you want me to read.", "action": READ_DOC}
+            return {
+                "success": False,
+                "output": "I couldn't find the document you want me to read.",
+                "action": READ_DOC,
+            }
 
         elif intent == GET_WINDOW:
             return cc.get_active_window()
@@ -574,7 +610,11 @@ class GUNAASTRAOrchestrator:
             return {"success": True, "output": "Stopping all tasks.", "action": STOP}
 
         else:
-            return {"success": False, "output": f"Action not yet implemented: {intent}", "action": intent}
+            return {
+                "success": False,
+                "output": f"Action not yet implemented: {intent}",
+                "action": intent,
+            }
 
     # ─── Result Display ───────────────────────────────────────────────────
 
@@ -615,11 +655,20 @@ class GUNAASTRAOrchestrator:
         if SPEAK_RESPONSES and status == "success":
             try:
                 from utils.system_tools import speak
+
                 speak(output[:200])
             except Exception:
                 pass
 
-        save_task({"goal": user_input, "task_count": 1, "status": status, "mode": "normal", "direct": True})
+        save_task(
+            {
+                "goal": user_input,
+                "task_count": 1,
+                "status": status,
+                "mode": "normal",
+                "direct": True,
+            }
+        )
         save_conversation("user", user_input, self.session_id)
         save_conversation("assistant", output, self.session_id)
         self._remember("assistant", output)
@@ -663,6 +712,7 @@ class GUNAASTRAOrchestrator:
             if SPEAK_RESPONSES:
                 try:
                     from utils.system_tools import speak
+
                     speak(response[:200])
                 except Exception:
                     pass
@@ -677,7 +727,15 @@ class GUNAASTRAOrchestrator:
         """Direct execution for API."""
         task = {"description": text, "original_goal": text}
         result = self.system_agent.run(task)
-        save_task({"goal": text, "task_count": 1, "status": result.get("status"), "mode": "normal", "direct": True})
+        save_task(
+            {
+                "goal": text,
+                "task_count": 1,
+                "status": result.get("status"),
+                "mode": "normal",
+                "direct": True,
+            }
+        )
         return result
 
     # ─── Simple Pipeline (Normal Mode, needs LLM) ─────────────────────────
@@ -698,7 +756,14 @@ class GUNAASTRAOrchestrator:
         try:
             tasks = json.loads(plan_result["output"])
         except Exception:
-            tasks = [{"id": 1, "description": user_input, "agent": "SystemAgent", "priority": 1}]
+            tasks = [
+                {
+                    "id": 1,
+                    "description": user_input,
+                    "agent": "SystemAgent",
+                    "priority": 1,
+                }
+            ]
 
         for task in tasks:
             task["original_goal"] = user_input
@@ -713,12 +778,21 @@ class GUNAASTRAOrchestrator:
                 self._pending_confirmation = {"task": task, "plan": result}
                 return
 
-            print(f"\033[90m  ↳ {result.get('status', '?').upper()} ({elapsed:.1f}s)\033[0m")
+            print(
+                f"\033[90m  ↳ {result.get('status', '?').upper()} ({elapsed:.1f}s)\033[0m"
+            )
 
         output = result.get("output", "Done.")
         print(f"\n\033[92m[GUNA-ASTRA] {output}\033[0m")
 
-        save_task({"goal": user_input, "task_count": len(tasks), "status": "success", "mode": "normal"})
+        save_task(
+            {
+                "goal": user_input,
+                "task_count": len(tasks),
+                "status": "success",
+                "mode": "normal",
+            }
+        )
         save_conversation("assistant", output, self.session_id)
         self._remember("assistant", output)
 
@@ -738,13 +812,17 @@ class GUNAASTRAOrchestrator:
         plan_result = self.planner.run({"goal": goal})
 
         if plan_result["status"] == "failed":
-            print(f"\033[91m[GUNA-ASTRA] Planning failed: {plan_result['output']}\033[0m")
+            print(
+                f"\033[91m[GUNA-ASTRA] Planning failed: {plan_result['output']}\033[0m"
+            )
             return
 
         try:
             tasks = json.loads(plan_result["output"])
         except Exception:
-            tasks = [{"id": 1, "description": goal, "agent": "ResearchAgent", "priority": 1}]
+            tasks = [
+                {"id": 1, "description": goal, "agent": "ResearchAgent", "priority": 1}
+            ]
 
         print(f"\033[92m[Planner] Created {len(tasks)} tasks:\033[0m")
         for t in tasks:
@@ -775,21 +853,27 @@ class GUNAASTRAOrchestrator:
                 self._pending_confirmation = {"task": task, "plan": result}
                 return
 
-            print(f"\033[90m  ↳ {result.get('status', '?').upper()} ({elapsed:.1f}s)\033[0m")
+            print(
+                f"\033[90m  ↳ {result.get('status', '?').upper()} ({elapsed:.1f}s)\033[0m"
+            )
 
             # ── Open Interpreter Enhancement: auto-execute CodingAgent output ──
             if "CodingAgent" in result.get("agent", ""):
                 code = result.get("output", "")
                 if code and len(code) > 20:
                     print(f"\n\033[96m📝 Code generated. Running it now...\033[0m")
-                    exec_result = self.engine.execute_with_retry(code, task.get("description", ""))
+                    exec_result = self.engine.execute_with_retry(
+                        code, task.get("description", "")
+                    )
                     if exec_result.get("success"):
                         result["output"] = (
                             f"Code executed successfully.\n"
                             f"Output:\n{exec_result.get('stdout', exec_result.get('output', ''))}"
                         )
                     else:
-                        result["output"] += f"\n\nExecution output:\n{exec_result.get('output', '')}"
+                        result[
+                            "output"
+                        ] += f"\n\nExecution output:\n{exec_result.get('output', '')}"
 
             all_results.append(result)
 
@@ -798,11 +882,13 @@ class GUNAASTRAOrchestrator:
         if code_results:
             print(f"\n\033[95m[Step 3/5] 🧪 Testing generated code...\033[0m")
             for cr in code_results:
-                test_result = self.tester.run({
-                    "description": cr.get("task", ""),
-                    "code": cr.get("output", ""),
-                    "output": cr.get("output", "")
-                })
+                test_result = self.tester.run(
+                    {
+                        "description": cr.get("task", ""),
+                        "code": cr.get("output", ""),
+                        "output": cr.get("output", ""),
+                    }
+                )
                 all_results.append(test_result)
                 print(f"\033[90m  ↳ Test: {test_result['status'].upper()}\033[0m")
         else:
@@ -810,27 +896,33 @@ class GUNAASTRAOrchestrator:
 
         # ── STEP 4: Verification ──────────────────────────────────────────
         print(f"\n\033[95m[Step 4/5] ✅ Verifying results...\033[0m")
-        outputs_summary = "\n".join([
-            f"[{r['agent']}]: {r['output'][:200]}" for r in all_results
-        ])
-        verify_result = self.verifier.run({
-            "original_goal": goal,
-            "outputs": outputs_summary
-        })
+        outputs_summary = "\n".join(
+            [f"[{r['agent']}]: {r['output'][:200]}" for r in all_results]
+        )
+        verify_result = self.verifier.run(
+            {"original_goal": goal, "outputs": outputs_summary}
+        )
         all_results.append(verify_result)
 
         if verify_result["status"] == "failed":
-            print(f"\033[91m[Verification] Issues found:\n{verify_result['output']}\033[0m")
+            print(
+                f"\033[91m[Verification] Issues found:\n{verify_result['output']}\033[0m"
+            )
 
         # ── STEP 5: Synthesize Final Response ─────────────────────────────
         print(f"\n\033[95m[Step 5/5] 📝 Preparing your response...\033[0m")
-        final = self.synthesizer.run({
-            "original_goal": goal,
-            "results": all_results,
-            "mode": "working"
-        })
+        final = self.synthesizer.run(
+            {"original_goal": goal, "results": all_results, "mode": "working"}
+        )
 
-        save_task({"goal": goal, "task_count": len(tasks), "status": final["status"], "mode": "working"})
+        save_task(
+            {
+                "goal": goal,
+                "task_count": len(tasks),
+                "status": final["status"],
+                "mode": "working",
+            }
+        )
         save_conversation("assistant", final["output"], self.session_id)
         self._remember("assistant", final["output"])
 
@@ -841,6 +933,7 @@ class GUNAASTRAOrchestrator:
         if SPEAK_RESPONSES:
             try:
                 from utils.system_tools import speak
+
                 speak(final["output"][:200])
             except Exception:
                 pass
@@ -853,7 +946,9 @@ class GUNAASTRAOrchestrator:
         try:
             tasks = json.loads(plan_result["output"])
         except Exception:
-            tasks = [{"id": 1, "description": text, "agent": "ResearchAgent", "priority": 1}]
+            tasks = [
+                {"id": 1, "description": text, "agent": "ResearchAgent", "priority": 1}
+            ]
 
         all_results = []
         for task in tasks:
@@ -863,8 +958,17 @@ class GUNAASTRAOrchestrator:
             result = self.dispatcher.dispatch(task)
             all_results.append(result)
 
-        final = self.synthesizer.run({"original_goal": text, "results": all_results, "mode": "working"})
-        save_task({"goal": text, "task_count": len(tasks), "status": final["status"], "mode": "working"})
+        final = self.synthesizer.run(
+            {"original_goal": text, "results": all_results, "mode": "working"}
+        )
+        save_task(
+            {
+                "goal": text,
+                "task_count": len(tasks),
+                "status": final["status"],
+                "mode": "working",
+            }
+        )
         return final
 
     # ─── Conversation Memory ──────────────────────────────────────────────
@@ -876,7 +980,9 @@ class GUNAASTRAOrchestrator:
 
     # ─── Normal Mode History ──────────────────────────────────────────────
 
-    def _save_normal_history(self, user_input: str, intent: str, params: dict, result: dict):
+    def _save_normal_history(
+        self, user_input: str, intent: str, params: dict, result: dict
+    ):
         """Save Normal Mode command to history for follow-up references."""
         entry = {
             "timestamp": datetime.now(),
@@ -884,16 +990,24 @@ class GUNAASTRAOrchestrator:
             "intent": intent,
             "params": params,
             "result": result,
-            "success": result.get("success", False)
+            "success": result.get("success", False),
         }
         self.normal_mode_history.append(entry)
         if len(self.normal_mode_history) > self.MAX_NORMAL_HISTORY:
-            self.normal_mode_history = self.normal_mode_history[-self.MAX_NORMAL_HISTORY:]
+            self.normal_mode_history = self.normal_mode_history[
+                -self.MAX_NORMAL_HISTORY :
+            ]
 
         # Also persist
-        save_task({"goal": user_input, "task_count": 1,
-                    "status": "success" if result.get("success") else "failed",
-                    "mode": "normal", "direct": True})
+        save_task(
+            {
+                "goal": user_input,
+                "task_count": 1,
+                "status": "success" if result.get("success") else "failed",
+                "mode": "normal",
+                "direct": True,
+            }
+        )
         save_conversation("user", user_input, self.session_id)
         save_conversation("assistant", result.get("output", ""), self.session_id)
         self._remember("assistant", result.get("output", ""))
@@ -936,7 +1050,9 @@ class GUNAASTRAOrchestrator:
             task = self._pending_confirmation["task"]
             self._pending_confirmation = None
             print("\033[92m[GUNA-ASTRA] Confirmed. Proceeding...\033[0m")
-            result = self.system_agent._handle_by_keywords(task.get("description", ""), task)
+            result = self.system_agent._handle_by_keywords(
+                task.get("description", ""), task
+            )
             print(f"\033[92m[SystemAgent] {result['output']}\033[0m")
         else:
             self._pending_confirmation = None
@@ -947,18 +1063,26 @@ class GUNAASTRAOrchestrator:
     def _print_mode(self):
         if self.current_mode == MODE_NORMAL:
             print("\033[93m[GUNA-ASTRA] ⚡ NORMAL MODE — Fast direct execution.\033[0m")
-            print("\033[90m  Type 'mode working' for complex tasks. Type 'help' for commands.\033[0m")
+            print(
+                "\033[90m  Type 'mode working' for complex tasks. Type 'help' for commands.\033[0m"
+            )
         else:
-            print("\033[95m[GUNA-ASTRA] 🤖 WORKING MODE — Full multi-agent pipeline.\033[0m")
-            print("\033[90m  Type 'mode normal' to switch back. Type 'help' for commands.\033[0m")
+            print(
+                "\033[95m[GUNA-ASTRA] 🤖 WORKING MODE — Full multi-agent pipeline.\033[0m"
+            )
+            print(
+                "\033[90m  Type 'mode normal' to switch back. Type 'help' for commands.\033[0m"
+            )
 
     # ─── Mode Switching ───────────────────────────────────────────────────
 
     def _change_mode(self, mode_input: str):
         """Switch between Normal and Working modes."""
         mode_map = {
-            "n": "normal", "normal": "normal",
-            "w": "working", "working": "working"
+            "n": "normal",
+            "normal": "normal",
+            "w": "working",
+            "working": "working",
         }
         new_mode = mode_map.get(mode_input.lower(), None)
 
@@ -967,14 +1091,22 @@ class GUNAASTRAOrchestrator:
 
             if new_mode == "normal":
                 print(f"\n\033[93m⚡ Switched to NORMAL MODE\033[0m")
-                print("\033[90m  Fast, direct computer control. No agent pipeline.\033[0m")
-                print("\033[90m  Examples: 'open chrome', 'play music', 'volume up 20'\033[0m")
+                print(
+                    "\033[90m  Fast, direct computer control. No agent pipeline.\033[0m"
+                )
+                print(
+                    "\033[90m  Examples: 'open chrome', 'play music', 'volume up 20'\033[0m"
+                )
             else:
                 print(f"\n\033[95m🤖 Switched to WORKING MODE\033[0m")
                 print("\033[90m  Full 11-agent pipeline for complex tasks.\033[0m")
-                print("\033[90m  Examples: 'create a PPT on AI', 'analyze this data'\033[0m")
+                print(
+                    "\033[90m  Examples: 'create a PPT on AI', 'analyze this data'\033[0m"
+                )
         else:
-            print(f"\033[91mUnknown mode: {mode_input}. Use 'normal' or 'working'.\033[0m")
+            print(
+                f"\033[91mUnknown mode: {mode_input}. Use 'normal' or 'working'.\033[0m"
+            )
 
     # ─── Help System ──────────────────────────────────────────────────────
 
@@ -1029,6 +1161,7 @@ class GUNAASTRAOrchestrator:
 
     def _show_history(self):
         from utils.memory_db import get_recent_tasks
+
         tasks = get_recent_tasks(10)
         if not tasks:
             print("\033[90m[Memory] No task history found.\033[0m")
@@ -1038,25 +1171,32 @@ class GUNAASTRAOrchestrator:
                 mode = t.get("mode", "?")
                 icon = "⚡" if mode == "normal" else "🤖" if mode == "working" else "?"
                 direct = " (direct)" if t.get("direct") else ""
-                print(f"  {icon} [{t.get('timestamp', '?')}] {t.get('goal', '?')}{direct}")
+                print(
+                    f"  {icon} [{t.get('timestamp', '?')}] {t.get('goal', '?')}{direct}"
+                )
 
     # ─── Status ───────────────────────────────────────────────────────────
 
     def _show_status(self):
         ollama_ok = check_ollama_health()
         from utils.memory_db import MONGO_AVAILABLE
-        mode_name = "⚡ Normal Mode" if self.current_mode == MODE_NORMAL else "🤖 Working Mode"
+
+        mode_name = (
+            "⚡ Normal Mode" if self.current_mode == MODE_NORMAL else "🤖 Working Mode"
+        )
 
         # Check optional dependencies
         pyautogui_ok = False
         psutil_ok = False
         try:
             import pyautogui
+
             pyautogui_ok = True
         except ImportError:
             pass
         try:
             import psutil
+
             psutil_ok = True
         except ImportError:
             pass

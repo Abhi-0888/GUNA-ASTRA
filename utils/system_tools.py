@@ -5,26 +5,26 @@ Covers: Files, Apps, Browser, Processes, Windows, Screen,
         Audio, Clipboard, Network, Notifications, Scheduler, Registry, Mouse/KB.
 """
 
-import os
-import sys
-import shutil
-import subprocess
-import webbrowser
-import tempfile
 import glob
-import zipfile
-import platform
-import socket
 import json
+import os
+import platform
 import re
+import shutil
+import socket
+import subprocess
+import sys
+import tempfile
+import webbrowser
+import zipfile
 from datetime import datetime
-from urllib.parse import quote_plus
 from pathlib import Path
-
+from urllib.parse import quote_plus
 
 # ══════════════════════════════════════════════════════════
 #  BROWSER / URL
 # ══════════════════════════════════════════════════════════
+
 
 def find_chrome() -> str | None:
     candidates = [
@@ -41,7 +41,9 @@ def find_chrome() -> str | None:
 
 def find_edge() -> str | None:
     candidates = [
-        os.path.expandvars(r"%PROGRAMFILES(X86)%\Microsoft\Edge\Application\msedge.exe"),
+        os.path.expandvars(
+            r"%PROGRAMFILES(X86)%\Microsoft\Edge\Application\msedge.exe"
+        ),
         os.path.expandvars(r"%PROGRAMFILES%\Microsoft\Edge\Application\msedge.exe"),
         os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Edge\Application\msedge.exe"),
     ]
@@ -90,6 +92,7 @@ def youtube_search(query: str, browser: str = "best") -> tuple[str, str]:
 # ══════════════════════════════════════════════════════════
 #  FILE & FOLDER OPERATIONS
 # ══════════════════════════════════════════════════════════
+
 
 def read_file(path: str) -> str:
     with open(path, "r", encoding="utf-8", errors="replace") as f:
@@ -191,12 +194,15 @@ def open_with_default(path: str):
 #  SHELL / PROCESS EXECUTION
 # ══════════════════════════════════════════════════════════
 
+
 def run_shell(cmd: str, timeout: int = 30, powershell: bool = False) -> str:
     """Run a shell command and return combined output."""
     if powershell:
         result = subprocess.run(
             ["powershell", "-NoProfile", "-NonInteractive", "-Command", cmd],
-            capture_output=True, text=True, timeout=timeout
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
     else:
         result = subprocess.run(
@@ -247,10 +253,16 @@ def launch_app(exe_or_name: str, args: list[str] = None) -> str:
         "firefox": find_firefox() or "firefox",
         "vlc": os.path.expandvars(r"%PROGRAMFILES%\VideoLAN\VLC\vlc.exe"),
         "spotify": os.path.expandvars(r"%APPDATA%\Spotify\Spotify.exe"),
-        "vscode": os.path.expandvars(r"%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe"),
-        "vs code": os.path.expandvars(r"%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe"),
+        "vscode": os.path.expandvars(
+            r"%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe"
+        ),
+        "vs code": os.path.expandvars(
+            r"%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe"
+        ),
         "discord": os.path.expandvars(r"%LOCALAPPDATA%\Discord\Update.exe"),
-        "teams": os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Teams\current\Teams.exe"),
+        "teams": os.path.expandvars(
+            r"%LOCALAPPDATA%\Microsoft\Teams\current\Teams.exe"
+        ),
         "zoom": os.path.expandvars(r"%APPDATA%\Zoom\bin\Zoom.exe"),
         "outlook": "outlook.exe",
         "word": "winword.exe",
@@ -274,7 +286,7 @@ def launch_app(exe_or_name: str, args: list[str] = None) -> str:
     # Use PowerShell Start-Process as ultimate fallback
     subprocess.Popen(
         ["powershell", "-Command", f"Start-Process '{resolved}'"],
-        creationflags=subprocess.CREATE_NO_WINDOW
+        creationflags=subprocess.CREATE_NO_WINDOW,
     )
     return resolved
 
@@ -282,7 +294,7 @@ def launch_app(exe_or_name: str, args: list[str] = None) -> str:
 def kill_process(name_or_pid: str) -> str:
     return run_shell(
         f"Stop-Process -Name '{name_or_pid}' -Force -ErrorAction SilentlyContinue",
-        powershell=True
+        powershell=True,
     )
 
 
@@ -290,17 +302,25 @@ def list_processes(filter_name: str = "") -> str:
     ps = "Get-Process | Select-Object Name,Id,CPU,WorkingSet | Sort-Object WorkingSet -Descending | Select-Object -First 30 | Format-Table -AutoSize"
     out = run_shell(ps, powershell=True)
     if filter_name:
-        lines = [l for l in out.splitlines() if filter_name.lower() in l.lower() or "Name" in l]
+        lines = [
+            l
+            for l in out.splitlines()
+            if filter_name.lower() in l.lower() or "Name" in l
+        ]
         return "\n".join(lines)
     return out
 
 
 def run_python_code(code: str, timeout: int = 60) -> str:
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, encoding="utf-8") as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".py", delete=False, encoding="utf-8"
+    ) as f:
         f.write(code)
         tmp = f.name
     try:
-        result = subprocess.run([sys.executable, tmp], capture_output=True, text=True, timeout=timeout)
+        result = subprocess.run(
+            [sys.executable, tmp], capture_output=True, text=True, timeout=timeout
+        )
         return (result.stdout + result.stderr).strip() or "(no output)"
     finally:
         try:
@@ -312,6 +332,7 @@ def run_python_code(code: str, timeout: int = 60) -> str:
 # ══════════════════════════════════════════════════════════
 #  WINDOW MANAGEMENT  (PowerShell / WinAPI via PS)
 # ══════════════════════════════════════════════════════════
+
 
 def _ps_window(action: str, title_filter: str = "") -> str:
     """Generic window controller via PowerShell."""
@@ -333,31 +354,36 @@ def minimize_window(title: str = "") -> str:
     if title:
         ps = (
             f"Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; "
-            f"public class W{{ [DllImport(\"user32.dll\")] public static extern bool ShowWindow(IntPtr h, int n); }}';"
+            f'public class W{{ [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n); }}\';'
             f"$p = Get-Process | Where-Object {{$_.MainWindowTitle -like '*{title}*'}} | Select-Object -First 1;"
             f"if($p){{[W]::ShowWindow($p.MainWindowHandle, 6)}}"
         )
         return run_shell(ps, powershell=True) or f"Minimized: {title}"
     # Minimize foreground window
-    return run_shell(
-        "(New-Object -ComObject WScript.Shell).SendKeys('% {DOWN}')",
-        powershell=True
-    ) or "Minimized active window"
+    return (
+        run_shell(
+            "(New-Object -ComObject WScript.Shell).SendKeys('% {DOWN}')",
+            powershell=True,
+        )
+        or "Minimized active window"
+    )
 
 
 def maximize_window(title: str = "") -> str:
     if title:
         ps = (
             f"Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; "
-            f"public class W{{ [DllImport(\"user32.dll\")] public static extern bool ShowWindow(IntPtr h, int n); }}';"
+            f'public class W{{ [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n); }}\';'
             f"$p = Get-Process | Where-Object {{$_.MainWindowTitle -like '*{title}*'}} | Select-Object -First 1;"
             f"if($p){{[W]::ShowWindow($p.MainWindowHandle, 3)}}"
         )
         return run_shell(ps, powershell=True) or f"Maximized: {title}"
-    return run_shell(
-        "(New-Object -ComObject WScript.Shell).SendKeys('% {UP}')",
-        powershell=True
-    ) or "Maximized active window"
+    return (
+        run_shell(
+            "(New-Object -ComObject WScript.Shell).SendKeys('% {UP}')", powershell=True
+        )
+        or "Maximized active window"
+    )
 
 
 def close_window(title: str) -> str:
@@ -371,7 +397,7 @@ def close_window(title: str) -> str:
 def switch_to_window(title: str) -> str:
     ps = (
         f"Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; "
-        f"public class W{{ [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr h); }}';"
+        f'public class W{{ [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); }}\';'
         f"$p = Get-Process | Where-Object {{$_.MainWindowTitle -like '*{title}*'}} | Select-Object -First 1;"
         f"if($p){{[W]::SetForegroundWindow($p.MainWindowHandle)}}"
     )
@@ -387,10 +413,13 @@ def list_open_windows() -> str:
 #  SCREENSHOT
 # ══════════════════════════════════════════════════════════
 
+
 def take_screenshot(out_path: str = None) -> str:
     if not out_path:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_path = os.path.join(os.path.expanduser("~"), "Desktop", f"screenshot_{ts}.png")
+        out_path = os.path.join(
+            os.path.expanduser("~"), "Desktop", f"screenshot_{ts}.png"
+        )
     out_path = out_path.replace("\\", "\\\\")
     ps = (
         "Add-Type -AssemblyName System.Windows.Forms,System.Drawing; "
@@ -408,6 +437,7 @@ def take_screenshot(out_path: str = None) -> str:
 #  AUDIO / VOLUME
 # ══════════════════════════════════════════════════════════
 
+
 def set_volume(level: int) -> str:
     """Set master volume 0-100."""
     level = max(0, min(100, level))
@@ -421,7 +451,9 @@ def set_volume(level: int) -> str:
 
 
 def mute_volume() -> str:
-    run_shell("(New-Object -ComObject WScript.Shell).SendKeys([char]173)", powershell=True)
+    run_shell(
+        "(New-Object -ComObject WScript.Shell).SendKeys([char]173)", powershell=True
+    )
     return "Volume muted/unmuted"
 
 
@@ -438,23 +470,30 @@ def volume_down(steps: int = 5) -> str:
 
 
 def play_pause_media() -> str:
-    run_shell("(New-Object -ComObject WScript.Shell).SendKeys([char]179)", powershell=True)
+    run_shell(
+        "(New-Object -ComObject WScript.Shell).SendKeys([char]179)", powershell=True
+    )
     return "Media play/pause toggled"
 
 
 def next_track() -> str:
-    run_shell("(New-Object -ComObject WScript.Shell).SendKeys([char]176)", powershell=True)
+    run_shell(
+        "(New-Object -ComObject WScript.Shell).SendKeys([char]176)", powershell=True
+    )
     return "Skipped to next track"
 
 
 def prev_track() -> str:
-    run_shell("(New-Object -ComObject WScript.Shell).SendKeys([char]177)", powershell=True)
+    run_shell(
+        "(New-Object -ComObject WScript.Shell).SendKeys([char]177)", powershell=True
+    )
     return "Went to previous track"
 
 
 # ══════════════════════════════════════════════════════════
 #  CLIPBOARD
 # ══════════════════════════════════════════════════════════
+
 
 def get_clipboard() -> str:
     return run_shell("Get-Clipboard", powershell=True)
@@ -470,6 +509,7 @@ def set_clipboard(text: str) -> str:
 #  NETWORK / SYSTEM INFO
 # ══════════════════════════════════════════════════════════
 
+
 def get_system_info() -> str:
     info = {
         "os": platform.platform(),
@@ -481,14 +521,17 @@ def get_system_info() -> str:
     # Add RAM via PowerShell
     ram = run_shell(
         "(Get-WmiObject Win32_OperatingSystem | Select-Object -ExpandProperty TotalVisibleMemorySize)/1MB",
-        powershell=True
+        powershell=True,
     )
     info["ram_gb_approx"] = ram.strip()
     return json.dumps(info, indent=2)
 
 
 def get_ip_address() -> str:
-    return run_shell("(Invoke-WebRequest -Uri 'https://api.ipify.org' -UseBasicParsing).Content", powershell=True)
+    return run_shell(
+        "(Invoke-WebRequest -Uri 'https://api.ipify.org' -UseBasicParsing).Content",
+        powershell=True,
+    )
 
 
 def ping(host: str) -> str:
@@ -510,29 +553,39 @@ def download_file(url: str, save_path: str = None) -> str:
     os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
     ps = f"Invoke-WebRequest -Uri '{url}' -OutFile '{save_path}' -UseBasicParsing"
     run_shell(ps, powershell=True)
-    return save_path if os.path.isfile(save_path) else f"Download may have failed: {save_path}"
+    return (
+        save_path
+        if os.path.isfile(save_path)
+        else f"Download may have failed: {save_path}"
+    )
 
 
 # ══════════════════════════════════════════════════════════
 #  KEYBOARD / MOUSE SHORTCUTS  (via PowerShell WScript)
 # ══════════════════════════════════════════════════════════
 
+
 def send_keys(keys: str) -> str:
     """Send keystrokes using WScript.Shell SendKeys syntax."""
     safe = keys.replace("'", "''")
-    run_shell(f"(New-Object -ComObject WScript.Shell).SendKeys('{safe}')", powershell=True)
+    run_shell(
+        f"(New-Object -ComObject WScript.Shell).SendKeys('{safe}')", powershell=True
+    )
     return f"Sent keys: {keys}"
 
 
 def type_text(text: str) -> str:
     safe = text.replace("'", "''")
-    run_shell(f"(New-Object -ComObject WScript.Shell).SendKeys('{safe}')", powershell=True)
+    run_shell(
+        f"(New-Object -ComObject WScript.Shell).SendKeys('{safe}')", powershell=True
+    )
     return f"Typed text: {text[:50]}"
 
 
 # ══════════════════════════════════════════════════════════
 #  NOTIFICATIONS
 # ══════════════════════════════════════════════════════════
+
 
 def show_notification(title: str, message: str, duration: int = 5) -> str:
     safe_title = title.replace("'", "''")
@@ -556,6 +609,7 @@ def show_notification(title: str, message: str, duration: int = 5) -> str:
 #  LOCATION / TIME
 # ══════════════════════════════════════════════════════════
 
+
 def get_current_time() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -569,6 +623,7 @@ def get_disk_usage(drive: str = "C:") -> str:
 #  TASK SCHEDULER
 # ══════════════════════════════════════════════════════════
 
+
 def schedule_task(name: str, command: str, run_at: str) -> str:
     """Schedule a one-time task. run_at format: 'HH:MM' or 'YYYY-MM-DD HH:MM'"""
     ps = (
@@ -580,12 +635,16 @@ def schedule_task(name: str, command: str, run_at: str) -> str:
 
 
 def list_scheduled_tasks() -> str:
-    return run_shell("Get-ScheduledTask | Where-Object {$_.TaskPath -eq '\\'} | Select-Object TaskName,State | Format-Table -AutoSize", powershell=True)
+    return run_shell(
+        "Get-ScheduledTask | Where-Object {$_.TaskPath -eq '\\'} | Select-Object TaskName,State | Format-Table -AutoSize",
+        powershell=True,
+    )
 
 
 # ══════════════════════════════════════════════════════════
 #  POWER MANAGEMENT
 # ══════════════════════════════════════════════════════════
+
 
 def lock_screen() -> str:
     run_shell("rundll32.exe user32.dll,LockWorkStation")
@@ -604,12 +663,16 @@ def hibernate_system() -> str:
 
 def restart_system(delay_seconds: int = 30) -> str:
     run_shell(f"shutdown /r /t {delay_seconds}")
-    return f"System will restart in {delay_seconds} seconds. Run 'shutdown /a' to abort."
+    return (
+        f"System will restart in {delay_seconds} seconds. Run 'shutdown /a' to abort."
+    )
 
 
 def shutdown_system(delay_seconds: int = 30) -> str:
     run_shell(f"shutdown /s /t {delay_seconds}")
-    return f"System will shut down in {delay_seconds} seconds. Run 'shutdown /a' to abort."
+    return (
+        f"System will shut down in {delay_seconds} seconds. Run 'shutdown /a' to abort."
+    )
 
 
 def abort_shutdown() -> str:
@@ -621,13 +684,14 @@ def abort_shutdown() -> str:
 #  WALLPAPER / DISPLAY
 # ══════════════════════════════════════════════════════════
 
+
 def set_wallpaper(image_path: str) -> str:
     image_path = os.path.abspath(image_path)
     ps = (
         f"Add-Type -TypeDefinition '"
         f"using System; using System.Runtime.InteropServices; "
         f"public class WP {{ "
-        f"[DllImport(\"user32.dll\", CharSet=CharSet.Auto)] "
+        f'[DllImport("user32.dll", CharSet=CharSet.Auto)] '
         f"public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni); }}'; "
         f"[WP]::SystemParametersInfo(20, 0, '{image_path}', 3)"
     )
@@ -639,7 +703,7 @@ def get_screen_resolution() -> str:
     ps = (
         "Add-Type -AssemblyName System.Windows.Forms; "
         "$s=[System.Windows.Forms.Screen]::PrimaryScreen; "
-        "Write-Output \"$($s.Bounds.Width)x$($s.Bounds.Height)\""
+        'Write-Output "$($s.Bounds.Width)x$($s.Bounds.Height)"'
     )
     return run_shell(ps, powershell=True)
 
@@ -647,6 +711,7 @@ def get_screen_resolution() -> str:
 # ══════════════════════════════════════════════════════════
 #  GOOGLE SEARCH (in browser)
 # ══════════════════════════════════════════════════════════
+
 
 def google_search(query: str, browser: str = "best") -> tuple[str, str]:
     """Open Google search in browser."""
@@ -659,10 +724,12 @@ def google_search(query: str, browser: str = "best") -> tuple[str, str]:
 #  WEB SEARCH (scrape real results)
 # ══════════════════════════════════════════════════════════
 
+
 def web_search(query: str, num_results: int = 5) -> str:
     """Fetch real search results from DuckDuckGo HTML (no API key needed)."""
     try:
         from bs4 import BeautifulSoup
+
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
@@ -689,6 +756,7 @@ def web_search(query: str, num_results: int = 5) -> str:
 #  TEXT-TO-SPEECH
 # ══════════════════════════════════════════════════════════
 
+
 def speak(text: str) -> str:
     """Make Windows speak text aloud using SAPI."""
     safe = text.replace("'", "''").replace('"', '`"')
@@ -699,7 +767,7 @@ def speak(text: str) -> str:
     )
     subprocess.Popen(
         ["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps],
-        creationflags=subprocess.CREATE_NO_WINDOW
+        creationflags=subprocess.CREATE_NO_WINDOW,
     )
     return f"🔊 Speaking: {text[:80]}"
 
@@ -707,6 +775,7 @@ def speak(text: str) -> str:
 # ══════════════════════════════════════════════════════════
 #  WEATHER
 # ══════════════════════════════════════════════════════════
+
 
 def get_weather(city: str = "") -> str:
     """Get weather from wttr.in (free, no API key)."""
@@ -728,19 +797,24 @@ def get_weather(city: str = "") -> str:
 #  APP INSTALLER (winget)
 # ══════════════════════════════════════════════════════════
 
+
 def install_app(name: str) -> str:
     """Install an application using winget."""
-    return run_shell(f"winget install --accept-package-agreements --accept-source-agreements \"{name}\"", timeout=120)
+    return run_shell(
+        f'winget install --accept-package-agreements --accept-source-agreements "{name}"',
+        timeout=120,
+    )
 
 
 def search_app(name: str) -> str:
     """Search for an application in winget."""
-    return run_shell(f"winget search \"{name}\"", timeout=30)
+    return run_shell(f'winget search "{name}"', timeout=30)
 
 
 # ══════════════════════════════════════════════════════════
 #  EMAIL (open default mail client)
 # ══════════════════════════════════════════════════════════
+
 
 def send_email(to: str = "", subject: str = "", body: str = "") -> str:
     """Open default email client with pre-filled fields using mailto: link."""
@@ -753,6 +827,7 @@ def send_email(to: str = "", subject: str = "", body: str = "") -> str:
 #  BRIGHTNESS
 # ══════════════════════════════════════════════════════════
 
+
 def set_brightness(level: int) -> str:
     """Set screen brightness (0-100)."""
     level = max(0, min(100, level))
@@ -762,13 +837,16 @@ def set_brightness(level: int) -> str:
     )
     result = run_shell(ps, powershell=True)
     if "Error" in result or "Exception" in result:
-        return f"Brightness control may not be supported on desktop PCs. ({result[:100]})"
+        return (
+            f"Brightness control may not be supported on desktop PCs. ({result[:100]})"
+        )
     return f"🔆 Brightness set to {level}%"
 
 
 # ══════════════════════════════════════════════════════════
 #  WIFI CONNECT
 # ══════════════════════════════════════════════════════════
+
 
 def connect_wifi(ssid: str, password: str = "") -> str:
     """Connect to a Wi-Fi network."""
@@ -800,6 +878,7 @@ def connect_wifi(ssid: str, password: str = "") -> str:
 #  BATTERY / POWER STATUS
 # ══════════════════════════════════════════════════════════
 
+
 def get_battery_status() -> str:
     """Get battery status (laptops)."""
     ps = (
@@ -817,6 +896,7 @@ def get_battery_status() -> str:
 #  RECYCLE BIN
 # ══════════════════════════════════════════════════════════
 
+
 def empty_recycle_bin() -> str:
     """Empty the Windows Recycle Bin."""
     ps = "Clear-RecycleBin -Force -ErrorAction SilentlyContinue"
@@ -827,6 +907,7 @@ def empty_recycle_bin() -> str:
 # ══════════════════════════════════════════════════════════
 #  STARTUP APPS
 # ══════════════════════════════════════════════════════════
+
 
 def list_startup_apps() -> str:
     """List programs that run at startup."""
@@ -841,6 +922,7 @@ def list_startup_apps() -> str:
 # ══════════════════════════════════════════════════════════
 #  BLUETOOTH
 # ══════════════════════════════════════════════════════════
+
 
 def toggle_bluetooth() -> str:
     """Toggle Bluetooth on/off."""

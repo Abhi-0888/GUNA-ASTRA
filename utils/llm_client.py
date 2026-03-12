@@ -3,8 +3,10 @@ Ollama API client for GUNA-ASTRA.
 All agents use this to communicate with Llama3.
 """
 
-import requests
 import json
+
+import requests
+
 from config.settings import OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_TIMEOUT
 from utils.logger import get_logger
 
@@ -22,11 +24,7 @@ def query_llm(prompt: str, system_prompt: str = "", model: str = OLLAMA_MODEL) -
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": prompt})
 
-    payload = {
-        "model": model,
-        "messages": messages,
-        "stream": False
-    }
+    payload = {"model": model, "messages": messages, "stream": False}
 
     try:
         response = requests.post(url, json=payload, timeout=OLLAMA_TIMEOUT)
@@ -34,7 +32,9 @@ def query_llm(prompt: str, system_prompt: str = "", model: str = OLLAMA_MODEL) -
         data = response.json()
         return data.get("message", {}).get("content", "").strip()
     except requests.exceptions.ConnectionError:
-        logger.error("Cannot connect to Ollama. Make sure Ollama is running: `ollama serve`")
+        logger.error(
+            "Cannot connect to Ollama. Make sure Ollama is running: `ollama serve`"
+        )
         return "ERROR: Ollama is not running. Please start it with `ollama serve`."
     except requests.exceptions.Timeout:
         logger.error("Ollama request timed out.")
@@ -55,6 +55,7 @@ def check_ollama_health() -> bool:
 
 # ─── v2 LLMClient Class ─────────────────────────────────────────────────────
 
+
 class LLMClient:
     """v2-style LLM client with object-oriented interface."""
 
@@ -62,8 +63,13 @@ class LLMClient:
         self.model = model
         self.base_url = base_url.rstrip("/")
 
-    def ask(self, user: str, system: str = "", temperature: float = 0.7,
-            max_tokens: int = 2000) -> str:
+    def ask(
+        self,
+        user: str,
+        system: str = "",
+        temperature: float = 0.7,
+        max_tokens: int = 2000,
+    ) -> str:
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
@@ -73,18 +79,17 @@ class LLMClient:
             "model": self.model,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": temperature, "num_predict": max_tokens}
+            "options": {"temperature": temperature, "num_predict": max_tokens},
         }
         try:
-            r = requests.post(f"{self.base_url}/api/chat",
-                              json=payload, timeout=OLLAMA_TIMEOUT)
+            r = requests.post(
+                f"{self.base_url}/api/chat", json=payload, timeout=OLLAMA_TIMEOUT
+            )
             r.raise_for_status()
             data = r.json()
             return data["message"]["content"].strip()
         except requests.exceptions.ConnectionError:
-            raise ConnectionError(
-                "Ollama is not running. Start it with: ollama serve"
-            )
+            raise ConnectionError("Ollama is not running. Start it with: ollama serve")
         except Exception as e:
             logger.error(f"LLM error: {e}")
             raise
@@ -92,4 +97,3 @@ class LLMClient:
     def generate(self, prompt: str, **kwargs) -> str:
         """Simple generate interface."""
         return self.ask(user=prompt, **kwargs)
-

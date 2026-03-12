@@ -15,9 +15,9 @@ from typing import Optional
 # ─────────────────────────────────────────────
 #  Intent Categories
 # ─────────────────────────────────────────────
-CHAT    = "CHAT"
-SINGLE  = "SINGLE"
-MULTI   = "MULTI"
+CHAT = "CHAT"
+SINGLE = "SINGLE"
+MULTI = "MULTI"
 BACKGROUND = "BACKGROUND"
 
 # ─────────────────────────────────────────────
@@ -96,10 +96,10 @@ BACKGROUND_CUES = [
 
 @dataclass
 class Intent:
-    category: str           # CHAT / SINGLE / MULTI / BACKGROUND
-    primary_agent: Optional[str] = None   # which agent handles it
+    category: str  # CHAT / SINGLE / MULTI / BACKGROUND
+    primary_agent: Optional[str] = None  # which agent handles it
     confidence: float = 1.0
-    entities: dict = None   # extracted info (song name, url, etc.)
+    entities: dict = None  # extracted info (song name, url, etc.)
     raw_input: str = ""
 
     def __post_init__(self):
@@ -128,7 +128,8 @@ def _extract_media_entity(text: str) -> dict:
     # "play <X> on youtube" or "play <X>"
     m = re.search(
         r"play\s+(.+?)(?:\s+(?:on|in|via)\s+(?:youtube|spotify|music))?$",
-        text, re.IGNORECASE
+        text,
+        re.IGNORECASE,
     )
     if m:
         query = m.group(1).strip()
@@ -190,29 +191,42 @@ def classify(user_input: str) -> Intent:
     if _match(MEDIA_PATTERNS, text):
         entities = _extract_media_entity(text)
         category = BACKGROUND if has_background else SINGLE
-        return Intent(category, primary_agent="SystemAgent",
-                      entities=entities, raw_input=text, confidence=0.9)
+        return Intent(
+            category,
+            primary_agent="SystemAgent",
+            entities=entities,
+            raw_input=text,
+            confidence=0.9,
+        )
 
     # ── 5. Browser ──────────────────────────────────
     if _match(BROWSER_PATTERNS, text):
         entities = _extract_browser_entity(text)
-        return Intent(SINGLE, primary_agent="SystemAgent",
-                      entities=entities, raw_input=text, confidence=0.88)
+        return Intent(
+            SINGLE,
+            primary_agent="SystemAgent",
+            entities=entities,
+            raw_input=text,
+            confidence=0.88,
+        )
 
     # ── 6. System ───────────────────────────────────
     if _match(SYSTEM_PATTERNS, text):
-        return Intent(SINGLE, primary_agent="SystemAgent",
-                      raw_input=text, confidence=0.85)
+        return Intent(
+            SINGLE, primary_agent="SystemAgent", raw_input=text, confidence=0.85
+        )
 
     # ── 7. Code ─────────────────────────────────────
     if _match(CODE_PATTERNS, text):
-        return Intent(SINGLE, primary_agent="CodingAgent",
-                      raw_input=text, confidence=0.88)
+        return Intent(
+            SINGLE, primary_agent="CodingAgent", raw_input=text, confidence=0.88
+        )
 
     # ── 8. Research ─────────────────────────────────
     if _match(RESEARCH_PATTERNS, text):
-        return Intent(SINGLE, primary_agent="ResearchAgent",
-                      raw_input=text, confidence=0.82)
+        return Intent(
+            SINGLE, primary_agent="ResearchAgent", raw_input=text, confidence=0.82
+        )
 
     # ── 9. Default: let LLM decide (MULTI path) ─────
     return Intent(MULTI, raw_input=text, confidence=0.6)

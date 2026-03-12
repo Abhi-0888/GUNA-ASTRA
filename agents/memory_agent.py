@@ -21,9 +21,13 @@ class MemoryAgent(BaseAgent):
         if "recall" in t or "what did" in t or "do you remember" in t:
             recent = db.get_recent_tasks(5)
             if recent:
-                return "Recent memory:\n" + "\n".join(f"• {r.get('goal', '?')}" for r in recent)
+                return "Recent memory:\n" + "\n".join(
+                    f"• {r.get('goal', '?')}" for r in recent
+                )
             return "Nothing in memory yet."
-        return self._ask("You manage memory. Answer the user's memory-related request.", task)
+        return self._ask(
+            "You manage memory. Answer the user's memory-related request.", task
+        )
 
     def run(self, task: dict) -> dict:
         action = task.get("action", "save")
@@ -34,11 +38,19 @@ class MemoryAgent(BaseAgent):
             return self.report("success", "Task saved to memory.", task)
 
         elif action == "save_log":
-            db.save_log(data.get("agent", "unknown"), data.get("message", ""), data.get("level", "INFO"))
+            db.save_log(
+                data.get("agent", "unknown"),
+                data.get("message", ""),
+                data.get("level", "INFO"),
+            )
             return self.report("success", "Log saved.", task)
 
         elif action == "save_conversation":
-            db.save_conversation(data.get("role", "user"), data.get("content", ""), data.get("session_id", "default"))
+            db.save_conversation(
+                data.get("role", "user"),
+                data.get("content", ""),
+                data.get("session_id", "default"),
+            )
             return self.report("success", "Conversation saved.", task)
 
         elif action == "get_history":
@@ -53,7 +65,9 @@ class MemoryAgent(BaseAgent):
             history = db.get_recent_tasks(20)
             if not history:
                 return self.report("success", "No task history found.", task)
-            summary_prompt = f"Summarize what this AI system has been doing recently:\n{history}"
+            summary_prompt = (
+                f"Summarize what this AI system has been doing recently:\n{history}"
+            )
             summary = self.think(summary_prompt)
             return self.report("success", summary, task)
 

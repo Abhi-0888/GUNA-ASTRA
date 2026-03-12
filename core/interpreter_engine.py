@@ -5,17 +5,16 @@ multi-language support, and safety scanning.
 """
 
 import os
-import sys
 import re
 import subprocess
+import sys
 import tempfile
 import threading
 from datetime import datetime
+
+from config.settings import (CODE_EXECUTION_MAX_RETRIES, JS_TIMEOUT,
+                             PYTHON_TIMEOUT, SHELL_TIMEOUT)
 from utils.logger import get_logger
-from config.settings import (
-    CODE_EXECUTION_MAX_RETRIES, PYTHON_TIMEOUT,
-    SHELL_TIMEOUT, JS_TIMEOUT
-)
 
 logger = get_logger("InterpreterEngine")
 
@@ -26,7 +25,10 @@ DANGER_PATTERNS = [
     (r"os\.remove\s*\(", "Deletes a file (os.remove)"),
     (r"shutil\.rmtree\s*\(", "Recursively deletes a directory (shutil.rmtree)"),
     (r"os\.rmdir\s*\(", "Removes a directory (os.rmdir)"),
-    (r"os\.system\s*\(.*(rm\s+-rf|del\s+/|format)", "Dangerous shell command via os.system"),
+    (
+        r"os\.system\s*\(.*(rm\s+-rf|del\s+/|format)",
+        "Dangerous shell command via os.system",
+    ),
     (r"subprocess.*rm\s+-rf", "Dangerous: rm -rf via subprocess"),
     (r"format\s*\(\s*['\"][A-Z]:", "Potential disk formatting"),
     (r"DROP\s+TABLE", "SQL: DROP TABLE"),
@@ -39,7 +41,9 @@ DANGER_PATTERNS = [
     (r"shutdown\s+/[sr]", "System shutdown/restart command"),
 ]
 
-_COMPILED_DANGERS = [(re.compile(p, re.IGNORECASE), reason) for p, reason in DANGER_PATTERNS]
+_COMPILED_DANGERS = [
+    (re.compile(p, re.IGNORECASE), reason) for p, reason in DANGER_PATTERNS
+]
 
 
 def scan_code_for_danger(code: str) -> list:
@@ -54,11 +58,7 @@ def scan_code_for_danger(code: str) -> list:
             continue
         for pattern, reason in _COMPILED_DANGERS:
             if pattern.search(line):
-                dangers.append({
-                    "line_num": i,
-                    "line": stripped,
-                    "reason": reason
-                })
+                dangers.append({"line_num": i, "line": stripped, "reason": reason})
                 break  # One danger per line is enough
     return dangers
 
@@ -70,14 +70,31 @@ def detect_language(code: str) -> str:
     # Shell indicators
     if code_lower.startswith("#!/bin/bash") or code_lower.startswith("#!/bin/sh"):
         return "shell"
-    shell_keywords = ["rm -rf", "mkdir -p", "cd ", "chmod ", "chown ",
-                      "apt-get", "yum ", "brew ", "echo $"]
+    shell_keywords = [
+        "rm -rf",
+        "mkdir -p",
+        "cd ",
+        "chmod ",
+        "chown ",
+        "apt-get",
+        "yum ",
+        "brew ",
+        "echo $",
+    ]
     if any(kw in code_lower for kw in shell_keywords):
         return "shell"
 
     # JavaScript indicators
-    js_keywords = ["console.log", "const ", "let ", "require(", "module.exports",
-                   "async function", "document.", "window."]
+    js_keywords = [
+        "console.log",
+        "const ",
+        "let ",
+        "require(",
+        "module.exports",
+        "async function",
+        "document.",
+        "window.",
+    ]
     if any(kw in code_lower for kw in js_keywords):
         return "javascript"
 
@@ -134,7 +151,7 @@ class InterpreterEngine:
                 text=True,
                 bufsize=1,
                 encoding="utf-8",
-                errors="replace"
+                errors="replace",
             )
 
             # Read stderr in a background thread
@@ -171,7 +188,7 @@ class InterpreterEngine:
             return {
                 "returncode": process.returncode or -1,
                 "stdout": "\n".join(stdout_lines),
-                "stderr": "\n".join(stderr_lines)
+                "stderr": "\n".join(stderr_lines),
             }
 
         except FileNotFoundError as e:
@@ -185,8 +202,11 @@ class InterpreterEngine:
         """Execute Python code with real-time streaming."""
         timeout = timeout or PYTHON_TIMEOUT
         tmp = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".py", delete=False, encoding="utf-8",
-            dir=self.working_directory
+            mode="w",
+            suffix=".py",
+            delete=False,
+            encoding="utf-8",
+            dir=self.working_directory,
         )
         try:
             tmp.write(code)
@@ -196,15 +216,15 @@ class InterpreterEngine:
             start = datetime.now()
 
             result = self._stream_process(
-                [sys.executable, tmp.name],
-                timeout=timeout,
-                cwd=self.working_directory
+                [sys.executable, tmp.name], timeout=timeout, cwd=self.working_directory
             )
 
             elapsed = (datetime.now() - start).total_seconds()
             status = "SUCCESS" if result["returncode"] == 0 else "ERROR"
             color = "\033[92m" if status == "SUCCESS" else "\033[91m"
-            print(f"\033[90m  ─── Result: {color}{status}\033[90m ({elapsed:.1f}s) ───\033[0m")
+            print(
+                f"\033[90m  ─── Result: {color}{status}\033[90m ({elapsed:.1f}s) ───\033[0m"
+            )
 
             result["elapsed"] = elapsed
             return result
@@ -219,6 +239,7 @@ class InterpreterEngine:
     def execute_shell(self, command: str, cwd: str = None) -> dict:
         """Execute a shell command with streaming."""
         import platform
+
         timeout = SHELL_TIMEOUT
 
         print(f"\033[90m  ─── Running: {command[:60]} ───\033[0m")
@@ -229,12 +250,16 @@ class InterpreterEngine:
         else:
             cmd = ["bash", "-c", command]
 
-        result = self._stream_process(cmd, timeout=timeout, cwd=cwd or self.working_directory)
+        result = self._stream_process(
+            cmd, timeout=timeout, cwd=cwd or self.working_directory
+        )
 
         elapsed = (datetime.now() - start).total_seconds()
         status = "SUCCESS" if result["returncode"] == 0 else "ERROR"
         color = "\033[92m" if status == "SUCCESS" else "\033[91m"
-        print(f"\033[90m  ─── Result: {color}{status}\033[90m ({elapsed:.1f}s) ───\033[0m")
+        print(
+            f"\033[90m  ─── Result: {color}{status}\033[90m ({elapsed:.1f}s) ───\033[0m"
+        )
 
         result["elapsed"] = elapsed
         result["success"] = result["returncode"] == 0
@@ -258,15 +283,15 @@ class InterpreterEngine:
             start = datetime.now()
 
             result = self._stream_process(
-                ["node", tmp.name],
-                timeout=timeout,
-                cwd=self.working_directory
+                ["node", tmp.name], timeout=timeout, cwd=self.working_directory
             )
 
             elapsed = (datetime.now() - start).total_seconds()
             status = "SUCCESS" if result["returncode"] == 0 else "ERROR"
             color = "\033[92m" if status == "SUCCESS" else "\033[91m"
-            print(f"\033[90m  ─── Result: {color}{status}\033[90m ({elapsed:.1f}s) ───\033[0m")
+            print(
+                f"\033[90m  ─── Result: {color}{status}\033[90m ({elapsed:.1f}s) ───\033[0m"
+            )
 
             result["elapsed"] = elapsed
             return result
@@ -293,8 +318,9 @@ class InterpreterEngine:
 
     # ── Self-Correcting Execution Loop ────────────────────────────────────────
 
-    def execute_with_retry(self, code: str, task_description: str = "",
-                           language: str = None) -> dict:
+    def execute_with_retry(
+        self, code: str, task_description: str = "", language: str = None
+    ) -> dict:
         """
         Execute code with automatic self-correction.
         If code fails, asks CodingAgent to fix it, up to MAX_RETRIES attempts.
@@ -304,7 +330,9 @@ class InterpreterEngine:
         last_error = ""
 
         for attempt in range(1, max_attempts + 1):
-            print(f"\n\033[96m[GUNA-ASTRA] Running code (attempt {attempt}/{max_attempts})...\033[0m")
+            print(
+                f"\n\033[96m[GUNA-ASTRA] Running code (attempt {attempt}/{max_attempts})...\033[0m"
+            )
 
             # Safety check
             dangers = scan_code_for_danger(current_code)
@@ -314,7 +342,9 @@ class InterpreterEngine:
                     print(f"\033[93m  Line {d['line_num']}: {d['line']}\033[0m")
                     print(f"\033[90m  Reason: {d['reason']}\033[0m")
                 try:
-                    choice = input("\n\033[93mProceed? (yes/no): \033[0m").strip().lower()
+                    choice = (
+                        input("\n\033[93mProceed? (yes/no): \033[0m").strip().lower()
+                    )
                     if choice not in ("yes", "y"):
                         return {
                             "returncode": -1,
@@ -322,12 +352,16 @@ class InterpreterEngine:
                             "stderr": "Execution cancelled by user.",
                             "success": False,
                             "output": "Code execution cancelled by user due to safety concerns.",
-                            "action": "CODE_EXECUTION"
+                            "action": "CODE_EXECUTION",
                         }
                 except EOFError:
                     return {
-                        "returncode": -1, "stdout": "", "stderr": "Cancelled.",
-                        "success": False, "output": "Cancelled.", "action": "CODE_EXECUTION"
+                        "returncode": -1,
+                        "stdout": "",
+                        "stderr": "Cancelled.",
+                        "success": False,
+                        "output": "Cancelled.",
+                        "action": "CODE_EXECUTION",
                     }
 
             result = self.execute_code(current_code, language)
@@ -340,7 +374,7 @@ class InterpreterEngine:
                     "success": True,
                     "output": result.get("stdout", "") or "Code executed successfully.",
                     "action": "CODE_EXECUTION",
-                    "attempts": attempt
+                    "attempts": attempt,
                 }
 
             # Error — try to fix
@@ -348,9 +382,12 @@ class InterpreterEngine:
             self.logger.warning(f"Attempt {attempt} failed: {last_error[:200]}")
 
             if attempt < max_attempts:
-                print(f"\033[93m[GUNA-ASTRA] Error detected. Asking Coding Agent to fix...\033[0m")
+                print(
+                    f"\033[93m[GUNA-ASTRA] Error detected. Asking Coding Agent to fix...\033[0m"
+                )
                 try:
                     from agents.coding_agent import CodingAgent
+
                     coder = CodingAgent()
                     fixed = coder.fix_code(current_code, last_error)
                     if fixed and fixed != current_code:
@@ -370,5 +407,5 @@ class InterpreterEngine:
             "success": False,
             "output": f"Code execution failed after {max_attempts} attempts.\nLast error: {last_error[:500]}",
             "action": "CODE_EXECUTION",
-            "attempts": max_attempts
+            "attempts": max_attempts,
         }

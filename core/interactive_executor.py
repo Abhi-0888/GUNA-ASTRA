@@ -4,8 +4,8 @@ Human-in-the-loop code execution for Working Mode.
 Shows code to user, asks for confirmation, then runs if approved.
 """
 
-from utils.logger import get_logger
 from core.interpreter_engine import InterpreterEngine
+from utils.logger import get_logger
 
 logger = get_logger("InteractiveExecutor")
 
@@ -16,8 +16,9 @@ class InteractiveExecutor:
     def __init__(self, engine: InterpreterEngine = None):
         self.engine = engine or InterpreterEngine()
 
-    def confirm_and_run(self, code: str, language: str = "python",
-                        context: str = "") -> dict:
+    def confirm_and_run(
+        self, code: str, language: str = "python", context: str = ""
+    ) -> dict:
         """
         Show code to user, ask for confirmation, then run if approved.
         Options: [Y] Run, [N] Skip, [E] Edit, [C] Copy to clipboard
@@ -50,7 +51,9 @@ class InteractiveExecutor:
             return self.engine.execute_with_retry(code, context, language)
 
         elif choice == "E":
-            print("\nPaste your edited code below. Type '###END###' on a new line when done:")
+            print(
+                "\nPaste your edited code below. Type '###END###' on a new line when done:"
+            )
             edited_lines = []
             try:
                 while True:
@@ -68,21 +71,24 @@ class InteractiveExecutor:
                 return {
                     "success": False,
                     "output": "No code provided after editing.",
-                    "action": "skip"
+                    "action": "skip",
                 }
 
         elif choice == "C":
             try:
                 import pyperclip
+
                 pyperclip.copy(code)
                 print("\033[92m✅ Code copied to clipboard.\033[0m")
             except ImportError:
                 # Fallback for Windows
                 try:
                     import subprocess
+
                     process = subprocess.Popen(
                         ["powershell", "-Command", "Set-Clipboard"],
-                        stdin=subprocess.PIPE, text=True
+                        stdin=subprocess.PIPE,
+                        text=True,
                     )
                     process.communicate(input=code)
                     print("\033[92m✅ Code copied to clipboard.\033[0m")
@@ -91,12 +97,12 @@ class InteractiveExecutor:
             return {
                 "success": True,
                 "output": "Code copied to clipboard.",
-                "action": "copy"
+                "action": "copy",
             }
 
         else:  # N or anything else
             return {
                 "success": True,
                 "output": "Code execution skipped by user.",
-                "action": "skip"
+                "action": "skip",
             }

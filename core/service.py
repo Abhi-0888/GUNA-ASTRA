@@ -9,24 +9,25 @@ Endpoints:
   POST /mode      — switch mode
 """
 
-import time
 import threading
+import time
+from typing import Optional
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
 
-from utils.logger import get_logger
+from config.settings import DEFAULT_MODE, MODE_NORMAL, MODE_WORKING
 from utils.llm_client import check_ollama_health
-from utils.memory_db import get_recent_tasks, MONGO_AVAILABLE
-from config.settings import MODE_NORMAL, MODE_WORKING, DEFAULT_MODE
+from utils.logger import get_logger
+from utils.memory_db import MONGO_AVAILABLE, get_recent_tasks
 
 logger = get_logger("API")
 
 app = FastAPI(
     title="GUNA-ASTRA API",
     description="Local Autonomous Multi-Agent AI System — HTTP Interface",
-    version="2.0"
+    version="2.0",
 )
 
 app.add_middleware(
@@ -49,6 +50,7 @@ def set_orchestrator(orchestrator):
 
 # ── Request/Response Models ──────────────────────────────────────────────────
 
+
 class CommandRequest(BaseModel):
     text: str
     mode: Optional[str] = None  # "normal" or "working", defaults to current mode
@@ -67,6 +69,7 @@ class ModeRequest(BaseModel):
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
 
+
 @app.get("/")
 def root():
     return {
@@ -74,7 +77,7 @@ def root():
         "version": "2.0",
         "status": "online",
         "mode": _orchestrator.current_mode if _orchestrator else "unknown",
-        "docs": "/docs"
+        "docs": "/docs",
     }
 
 
@@ -86,7 +89,7 @@ def execute_command(req: CommandRequest):
             status="error",
             output="Orchestrator not initialized.",
             mode="unknown",
-            elapsed=0.0
+            elapsed=0.0,
         )
 
     with _lock:
@@ -109,7 +112,7 @@ def execute_command(req: CommandRequest):
             status=result.get("status", "success"),
             output=result.get("output", "Done."),
             mode=_orchestrator.current_mode,
-            elapsed=round(elapsed, 2)
+            elapsed=round(elapsed, 2),
         )
 
 
@@ -138,8 +141,11 @@ def get_mode():
     """Get current operation mode."""
     return {
         "mode": _orchestrator.current_mode if _orchestrator else DEFAULT_MODE,
-        "description": "Normal Mode — fast direct execution" if (_orchestrator and _orchestrator.current_mode == MODE_NORMAL)
-                       else "Working Mode — full multi-agent pipeline"
+        "description": (
+            "Normal Mode — fast direct execution"
+            if (_orchestrator and _orchestrator.current_mode == MODE_NORMAL)
+            else "Working Mode — full multi-agent pipeline"
+        ),
     }
 
 

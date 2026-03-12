@@ -5,6 +5,7 @@ Breaks user goals into structured, actionable tasks.
 
 import json
 import re
+
 from agents.base_agent import BaseAgent
 
 SYSTEM_PROMPT = """You are the Planner Agent for GUNA-ASTRA, an autonomous AI system with FULL access to the user's Windows computer.
@@ -81,7 +82,7 @@ class PlannerAgent(BaseAgent):
             return json.loads(text)
         except json.JSONDecodeError:
             # Try to extract JSON array from messy output
-            match = re.search(r'\[.*\]', text, re.DOTALL)
+            match = re.search(r"\[.*\]", text, re.DOTALL)
             if match:
                 try:
                     return json.loads(match.group())

@@ -9,8 +9,8 @@ Usage:
 """
 
 import os
-import sys
 import subprocess
+import sys
 
 TASK_NAME = "GUNA-ASTRA"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -28,7 +28,7 @@ def install():
     cmd = (
         f'schtasks /create /tn "{TASK_NAME}" '
         f'/tr "\\"{PYTHONW_EXE}\\" \\"{MAIN_SCRIPT}\\" --service" '
-        f'/sc ONLOGON /rl HIGHEST /f'
+        f"/sc ONLOGON /rl HIGHEST /f"
     )
     print(f"\n[GUNA-ASTRA] Registering auto-start...")
     print(f"  Python:  {PYTHONW_EXE}")

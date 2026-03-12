@@ -3,10 +3,11 @@ Agent 9: Testing Agent
 Tests code and scripts produced by the Coding Agent.
 """
 
+import os
 import subprocess
 import sys
 import tempfile
-import os
+
 from agents.base_agent import BaseAgent
 
 SYSTEM_PROMPT = """You are the Testing Agent for GUNA-ASTRA.
@@ -61,8 +62,7 @@ class TestingAgent(BaseAgent):
                 path = f.name
 
             result = subprocess.run(
-                [sys.executable, path],
-                capture_output=True, text=True, timeout=15
+                [sys.executable, path], capture_output=True, text=True, timeout=15
             )
             os.unlink(path)
             return result.stdout or result.stderr or "(no output)"

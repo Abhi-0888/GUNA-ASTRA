@@ -6,16 +6,17 @@ Supports 40+ capabilities across every major Windows system category.
 v2: Enhanced with EXTRACTED_QUERY support for accurate media playback.
 """
 
-import os
-import sys
-import re
 import json
+import os
+import re
 import subprocess
-import webbrowser
+import sys
 import urllib.parse
+import webbrowser
+
 from agents.base_agent import BaseAgent
-from utils import system_tools as st
 from core.interpreter_engine import InterpreterEngine
+from utils import system_tools as st
 
 SYSTEM_PROMPT = """You are the System Agent for GUNA-ASTRA — a full-access Windows system controller.
 
@@ -108,7 +109,9 @@ class SystemAgent(BaseAgent):
 
         # v2 browser handling
         if any(w in t for w in ["search ", "google "]) and extracted_query:
-            url = f"https://www.google.com/search?q={urllib.parse.quote(extracted_query)}"
+            url = (
+                f"https://www.google.com/search?q={urllib.parse.quote(extracted_query)}"
+            )
             webbrowser.open(url)
             return f"🔍 Google search: '{extracted_query}'"
 
@@ -131,12 +134,24 @@ class SystemAgent(BaseAgent):
         if not query:
             # Parse from task text
             text = self._clean_hint_text(task)
-            text = re.sub(r"\s+(?:on|in|via|using)\s+(?:youtube|spotify|music|soundcloud)\s*$", "", text, flags=re.I)
-            query = re.sub(r"^(?:play|listen to|put on|start playing|can you play|please play)\s+", "", text, flags=re.I)
+            text = re.sub(
+                r"\s+(?:on|in|via|using)\s+(?:youtube|spotify|music|soundcloud)\s*$",
+                "",
+                text,
+                flags=re.I,
+            )
+            query = re.sub(
+                r"^(?:play|listen to|put on|start playing|can you play|please play)\s+",
+                "",
+                text,
+                flags=re.I,
+            )
             query = query.strip().strip(".,!?\"'")
 
         if not query:
-            return "I couldn't figure out what to play. Could you say the song name again?"
+            return (
+                "I couldn't figure out what to play. Could you say the song name again?"
+            )
 
         if platform == "spotify":
             url = f"https://open.spotify.com/search/{urllib.parse.quote(query)}"
@@ -169,7 +184,7 @@ class SystemAgent(BaseAgent):
         response = self.think(f"Plan the OS action for this task:\n{description}")
 
         try:
-            match = re.search(r'\{.*\}', response, re.DOTALL)
+            match = re.search(r"\{.*\}", response, re.DOTALL)
             plan = json.loads(match.group()) if match else {}
         except Exception:
             plan = {}
@@ -189,7 +204,10 @@ class SystemAgent(BaseAgent):
             return self._do_play_youtube(description, task)
 
         # Screenshot
-        if any(w in d for w in ["screenshot", "screen capture", "screen shot", "capture screen"]):
+        if any(
+            w in d
+            for w in ["screenshot", "screen capture", "screen shot", "capture screen"]
+        ):
             path = st.take_screenshot()
             if path:
                 return self.report("success", f"📸 Screenshot saved: {path}", task)
@@ -220,7 +238,17 @@ class SystemAgent(BaseAgent):
             return self.report("success", st.abort_shutdown(), task)
 
         # System info
-        if any(w in d for w in ["system info", "pc info", "computer info", "hardware info", "ram", "cpu info"]):
+        if any(
+            w in d
+            for w in [
+                "system info",
+                "pc info",
+                "computer info",
+                "hardware info",
+                "ram",
+                "cpu info",
+            ]
+        ):
             return self.report("success", st.get_system_info(), task)
         if "disk" in d and ("space" in d or "usage" in d or "storage" in d):
             return self.report("success", st.get_disk_usage(), task)
@@ -246,29 +274,80 @@ class SystemAgent(BaseAgent):
             return self.report("success", st.list_open_windows(), task)
 
         # Open browser / website
-        if any(w in d for w in ["open browser", "open chrome", "open edge", "browse to", "go to website"]):
+        if any(
+            w in d
+            for w in [
+                "open browser",
+                "open chrome",
+                "open edge",
+                "browse to",
+                "go to website",
+            ]
+        ):
             url = self._extract_url(description) or "https://www.google.com"
             browser_used = st.open_url(url)
             return self.report("success", f"Opened {url} in {browser_used}.", task)
 
         # Google search
-        if any(w in d for w in ["search google", "google search", "google for", "look up", "search for"]):
-            query = re.sub(r'(search|google|for|look up|find|on google)\s*', '', d, flags=re.IGNORECASE).strip() or description
+        if any(
+            w in d
+            for w in [
+                "search google",
+                "google search",
+                "google for",
+                "look up",
+                "search for",
+            ]
+        ):
+            query = (
+                re.sub(
+                    r"(search|google|for|look up|find|on google)\s*",
+                    "",
+                    d,
+                    flags=re.IGNORECASE,
+                ).strip()
+                or description
+            )
             url, browser = st.google_search(query)
-            return self.report("success", f"🔍 Searched Google for '{query}' in {browser}.\n🔗 {url}", task)
+            return self.report(
+                "success",
+                f"🔍 Searched Google for '{query}' in {browser}.\n🔗 {url}",
+                task,
+            )
 
         # Weather
         if any(w in d for w in ["weather", "temperature", "forecast"]):
-            city = re.sub(r'(weather|temperature|forecast|what|is|the|in|of|for|show|get|check|whats)\s*', '', d).strip()
+            city = re.sub(
+                r"(weather|temperature|forecast|what|is|the|in|of|for|show|get|check|whats)\s*",
+                "",
+                d,
+            ).strip()
             return self.report("success", st.get_weather(city), task)
 
         # Text-to-speech
         if any(w in d for w in ["say ", "speak ", "read aloud", "tell me", "read out"]):
-            text = re.sub(r'^(say|speak|read aloud|read out|tell me)\s*', '', d, flags=re.IGNORECASE).strip() or description
+            text = (
+                re.sub(
+                    r"^(say|speak|read aloud|read out|tell me)\s*",
+                    "",
+                    d,
+                    flags=re.IGNORECASE,
+                ).strip()
+                or description
+            )
             return self.report("success", st.speak(text), task)
 
         # Email
-        if any(w in d for w in ["send email", "send mail", "compose email", "write email", "draft email"]):
+        if any(
+            w in d
+            for w in [
+                "send email",
+                "send mail",
+                "compose email",
+                "write email",
+                "draft email",
+            ]
+        ):
             return self.report("success", st.send_email(), task)
 
         # Battery
@@ -277,7 +356,7 @@ class SystemAgent(BaseAgent):
 
         # Brightness
         if "brightness" in d:
-            nums = re.findall(r'\d+', d)
+            nums = re.findall(r"\d+", d)
             level = int(nums[0]) if nums else 50
             return self.report("success", st.set_brightness(level), task)
 
@@ -295,9 +374,11 @@ class SystemAgent(BaseAgent):
 
         # Install app
         if any(w in d for w in ["install ", "download app", "get app"]):
-            app = re.sub(r'(install|download|get|app)\s*', '', d).strip()
+            app = re.sub(r"(install|download|get|app)\s*", "", d).strip()
             if app:
-                return self.report("success", f"Installing {app}...\n{st.install_app(app)}", task)
+                return self.report(
+                    "success", f"Installing {app}...\n{st.install_app(app)}", task
+                )
 
         # Notification
         if "notification" in d or "notify me" in d or "send notification" in d:
@@ -321,7 +402,7 @@ class SystemAgent(BaseAgent):
                 f"Action : {action}\n"
                 f"Target : {target}\n\n"
                 f"Type 'confirm' to proceed or anything else to cancel.",
-                task
+                task,
             )
 
         return self._dispatch(action, target, args, task)
@@ -331,7 +412,9 @@ class SystemAgent(BaseAgent):
             # ── Browser / URL ──────────────────────────────────────────────
             if action == "open_url":
                 browser_used = st.open_url(target)
-                return self.report("success", f"Opened {target} in {browser_used}.", task)
+                return self.report(
+                    "success", f"Opened {target} in {browser_used}.", task
+                )
 
             if action == "play_youtube":
                 query = target or args.get("query", "")
@@ -391,7 +474,11 @@ class SystemAgent(BaseAgent):
                 root = args.get("root", os.path.expanduser("~"))
                 pattern = args.get("pattern", target or "")
                 found = st.search_files(root, pattern)
-                return self.report("success", f"🔍 Found {len(found)} files:\n" + "\n".join(found), task)
+                return self.report(
+                    "success",
+                    f"🔍 Found {len(found)} files:\n" + "\n".join(found),
+                    task,
+                )
 
             if action == "zip_files":
                 paths = args.get("paths", [target])
@@ -458,7 +545,9 @@ class SystemAgent(BaseAgent):
 
             # ── Clipboard / Keys ───────────────────────────────────────────
             if action == "get_clipboard":
-                return self.report("success", f"📋 Clipboard: {st.get_clipboard()}", task)
+                return self.report(
+                    "success", f"📋 Clipboard: {st.get_clipboard()}", task
+                )
             if action == "set_clipboard":
                 text = target or args.get("text", "")
                 return self.report("success", st.set_clipboard(text), task)
@@ -500,7 +589,9 @@ class SystemAgent(BaseAgent):
             if action == "notify":
                 title = args.get("title", "GUNA-ASTRA")
                 message = args.get("message", target)
-                return self.report("success", st.show_notification(title, message), task)
+                return self.report(
+                    "success", st.show_notification(title, message), task
+                )
             if action == "schedule_task":
                 name = args.get("name", "GUNA-ASTRA-Task")
                 cmd = args.get("command", target)
@@ -520,11 +611,17 @@ class SystemAgent(BaseAgent):
             if action == "google_search":
                 query = target or args.get("query", "")
                 url, browser = st.google_search(query)
-                return self.report("success", f"🔍 Searched Google for '{query}' in {browser}.\n🔗 {url}", task)
+                return self.report(
+                    "success",
+                    f"🔍 Searched Google for '{query}' in {browser}.\n🔗 {url}",
+                    task,
+                )
             if action == "web_search":
                 query = target or args.get("query", "")
                 results = st.web_search(query)
-                return self.report("success", f"🔍 Search results for '{query}':\n{results}", task)
+                return self.report(
+                    "success", f"🔍 Search results for '{query}':\n{results}", task
+                )
 
             # ── NEW: TTS / Weather / Email ─────────────────────────────────
             if action == "speak":
@@ -573,8 +670,21 @@ class SystemAgent(BaseAgent):
 
     def _do_play_youtube(self, description: str, task: dict) -> dict:
         strip_words = [
-            "play", "search", "find", "open", "watch", "on youtube", "youtube",
-            "in chrome", "in browser", "song", "video", "music", "me", "the", "a"
+            "play",
+            "search",
+            "find",
+            "open",
+            "watch",
+            "on youtube",
+            "youtube",
+            "in chrome",
+            "in browser",
+            "song",
+            "video",
+            "music",
+            "me",
+            "the",
+            "a",
         ]
         query = description.lower()
         for w in strip_words:
@@ -585,12 +695,12 @@ class SystemAgent(BaseAgent):
         return self.report(
             "success",
             f"🎵 Opened YouTube search for '{query}' in {browser}.\n🔗 {url}",
-            task
+            task,
         )
 
     def _do_volume(self, description: str, task: dict) -> dict:
         d = description.lower()
-        nums = re.findall(r'\d+', d)
+        nums = re.findall(r"\d+", d)
 
         if "mute" in d or "unmute" in d:
             return self.report("success", st.mute_volume(), task)
@@ -611,13 +721,16 @@ class SystemAgent(BaseAgent):
         d = description.lower()
         if any(w in d for w in ["get", "read", "show", "what", "paste", "copy from"]):
             return self.report("success", f"📋 Clipboard:\n{st.get_clipboard()}", task)
-        content = re.sub(
-            r'.*(clipboard|copy)\s*[:\-]?\s*', '', description, flags=re.IGNORECASE
-        ).strip() or description
+        content = (
+            re.sub(
+                r".*(clipboard|copy)\s*[:\-]?\s*", "", description, flags=re.IGNORECASE
+            ).strip()
+            or description
+        )
         return self.report("success", st.set_clipboard(content), task)
 
     def _extract_url(self, text: str) -> str | None:
-        match = re.search(r'https?://\S+', text)
+        match = re.search(r"https?://\S+", text)
         return match.group() if match else None
 
     # ── Keyword fallback (always works) ───────────────────────────────────────
@@ -629,8 +742,11 @@ class SystemAgent(BaseAgent):
             return self._do_play_youtube(description, task)
         if "screenshot" in d or "screen capture" in d:
             path = st.take_screenshot()
-            return self.report("success" if path else "failed",
-                               f"📸 Screenshot: {path}" if path else "Screenshot failed.", task)
+            return self.report(
+                "success" if path else "failed",
+                f"📸 Screenshot: {path}" if path else "Screenshot failed.",
+                task,
+            )
         if "volume" in d or "mute" in d:
             return self._do_volume(description, task)
         if "clipboard" in d:
@@ -642,11 +758,14 @@ class SystemAgent(BaseAgent):
         if "ip" in d or "internet" in d:
             return self.report("success", f"IP: {st.get_ip_address()}", task)
         if "notepad" in d:
-            st.launch_app("notepad"); return self.report("success", "Opened Notepad.", task)
+            st.launch_app("notepad")
+            return self.report("success", "Opened Notepad.", task)
         if "calculator" in d or " calc" in d:
-            st.launch_app("calculator"); return self.report("success", "Opened Calculator.", task)
+            st.launch_app("calculator")
+            return self.report("success", "Opened Calculator.", task)
         if "task manager" in d:
-            st.launch_app("task manager"); return self.report("success", "Opened Task Manager.", task)
+            st.launch_app("task manager")
+            return self.report("success", "Opened Task Manager.", task)
         if "file explorer" in d or "open folder" in d:
             st.open_with_default(os.path.expanduser("~"))
             return self.report("success", "Opened File Explorer.", task)
@@ -660,7 +779,7 @@ class SystemAgent(BaseAgent):
             return self.report("success", f"Opened Edge at {url}.", task)
         if any(w in d for w in ["open", "launch", "start", "run"]):
             # Generic app launch attempt
-            app = re.sub(r'(open|launch|start|run)\s+', '', d).strip()
+            app = re.sub(r"(open|launch|start|run)\s+", "", d).strip()
             if app:
                 try:
                     path = st.launch_app(app)
@@ -668,7 +787,9 @@ class SystemAgent(BaseAgent):
                 except Exception:
                     pass
 
-        return self.report("failed", f"Could not determine system action for: {description}", task)
+        return self.report(
+            "failed", f"Could not determine system action for: {description}", task
+        )
 
     # ── InterpreterEngine code execution ──────────────────────────────────────────
 
@@ -680,4 +801,3 @@ class SystemAgent(BaseAgent):
         status = "success" if result.get("success") else "failed"
         output = result.get("output", "")
         return self.report(status, f"Script output:\n{output}", task)
-
