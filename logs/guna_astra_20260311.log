@@ -1,9 +1,0 @@
-2026-03-11 00:37:03,833 [MongoDB] MongoDB connected successfully.
-2026-03-11 00:37:32,603 [MongoDB] MongoDB connected successfully.
-2026-03-11 00:41:21,193 [MongoDB] MongoDB connected successfully.
-2026-03-11 22:57:40,621 [MongoDB] MongoDB connected successfully.
-2026-03-11 22:58:10,781 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
-2026-03-11 22:59:14,327 [OllamaClient] Cannot connect to Ollama. Make sure Ollama is running: `ollama serve`
-2026-03-11 23:00:51,957 [MongoDB] MongoDB connected successfully.
-2026-03-11 23:00:58,459 [GUNA-ASTRA] GUNA-ASTRA v2.0 orchestrator is online.
-2026-03-11 23:02:04,532 [SystemAgent] System task: open last letter song in youtube
