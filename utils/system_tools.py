@@ -21,6 +21,8 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote_plus
 
+import requests
+
 # ══════════════════════════════════════════════════════════
 #  BROWSER / URL
 # ══════════════════════════════════════════════════════════
